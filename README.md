@@ -13,9 +13,9 @@ Instead of asking users to define their productivity patterns, the system automa
 ## **Structure**
 
 - [**Models**](./models) - implementation of planner models
-- [**Simulation**](./simulation) - generating user profiles and simulating their task execution
+- [**Simulation**](./simulation) - variables for user profiles and simulating their task execution
 - [**Experiments**](./experiments) - core of the project, running experiment logic
-- [**Data**](./data) - base data management
+- [**Data**](./data) - base data management and generating augmented data for bigger sample size
 - [**Evaluation**](./evaluation) - calculating metrics, plotting and result aggregation
 
 #### Project elements
@@ -54,8 +54,30 @@ Instead of asking users to define their productivity patterns, the system automa
 
 ### Faze II - disruptor responsiveness
 
----
+## **Evaluation**
+
+<!-- measures used -->
+<!-- present main results -->
+<!-- link the thesis -->
 
 ---
+
 <a id="installation"></a>
+
 ## Instalation
+
+Required python 3.12+
+
+```bash
+python -m venv .venv
+# Linux/MacOS
+source .venv/bin/activate
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+```
+
+Run the following commands to set up the environment:
+
+```bash
+pip install -r requirements.txt
+```
