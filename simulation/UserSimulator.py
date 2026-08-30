@@ -19,43 +19,43 @@ CHRONOTYPES = {
 }
 
 SKILL_ATTR_MAP = {
-    "communication": "communication_skill",
-    "creativity": "creativity_skill",
-    "technical": "technical_skill",
-    "routine": "routine_skill",
-    "analytical": "analytical_skill",
+    "routine": {"attr_name": "routine_skill", "embedding": 0.2},
+    "communication": {"attr_name": "communication_skill", "embedding": 0.4},
+    "creativity": {"attr_name": "creativity_skill", "embedding": 0.6},
+    "technical": {"attr_name": "technical_skill", "embedding": 0.8},
+    "analytical": {"attr_name": "analytical_skill", "embedding": 1.0},
 }
 
 SWITCH_MATRIX: dict[tuple[str, str], float] = {
-    # ------------------ Z: COMMUNICATION ------------------
+    # ------------------ from: COMMUNICATION ------------------
     ("communication", "communication"): 0.0,
-    ("communication", "routine"): 5 / 60,        # 5 min (rozładowanie uwagi na proste zadania)
+    ("communication", "routine"): 5 / 60,        # 5 min (switch to mentally easier task)
     ("communication", "creativity"): 15 / 60,    # 15 min (wyciszenie i zmiana trybu na generatywny)
     ("communication", "technical"): 15 / 60,     # 15 min (przejście do logiki implementacyjnej)
     ("communication", "analytical"): 20 / 60,    # 20 min (wejście w stan głębokiej dedukcji po rozmowach)
 
-    # ------------------ Z: CREATIVITY ------------------
+    # ------------------ from: CREATIVITY ------------------
     ("creativity", "creativity"): 0.0,
     ("creativity", "routine"): 5 / 60,           # 5 min
     ("creativity", "communication"): 10 / 60,    # 10 min (wyjście ze stanu flow do interakcji)
     ("creativity", "technical"): 20 / 60,        # 20 min (przestawienie z myślenia dywergencyjnego na syntaktyczne)
     ("creativity", "analytical"): 25 / 60,       # 25 min (największy koszt poznawczy: kreacja -> ścisła weryfikacja)
 
-    # ------------------ Z: TECHNICAL ------------------
+    # ------------------ from: TECHNICAL ------------------
     ("technical", "technical"): 0.0,
     ("technical", "routine"): 5 / 60,            # 5 min
     ("technical", "communication"): 10 / 60,     # 10 min (wybicie z kodu/architektury do rozmowy)
     ("technical", "analytical"): 10 / 60,        # 10 min (pokrewne domeny ścisłe, mały narzut)
     ("technical", "creativity"): 20 / 60,        # 20 min (przejście z wąskich reguł technicznych do otwartej kreacji)
 
-    # ------------------ Z: ROUTINE ------------------
+    # ------------------ from: ROUTINE ------------------
     ("routine", "routine"): 0.0,
     ("routine", "communication"): 5 / 60,        # 5 min (łatwe przejście z zadań odtwórczych)
     ("routine", "technical"): 15 / 60,           # 15 min (wejście w wysokie skupienie ze stanu niskiego wysiłku)
     ("routine", "analytical"): 15 / 60,          # 15 min
     ("routine", "creativity"): 15 / 60,          # 15 min
 
-    # ------------------ Z: ANALYTICAL ------------------
+    # ------------------ from: ANALYTICAL ------------------
     ("analytical", "analytical"): 0.0,
     ("analytical", "routine"): 5 / 60,           # 5 min
     ("analytical", "technical"): 10 / 60,        # 10 min (pokrewny tryb skupienia)
@@ -80,9 +80,9 @@ class UserSimulator:
 
     def _get_skill_level(self, task_type: str) -> float:
         """Retrieves skill level of user for given task type (0.5 by default)."""
-        attr_name = SKILL_ATTR_MAP.get(task_type)
-        if attr_name and hasattr(self.user_profile, attr_name):
-            val = getattr(self.user_profile, attr_name)
+        task_params = SKILL_ATTR_MAP.get(task_type)
+        if task_params and hasattr(self.user_profile, task_params["attr_name"]):
+            val = getattr(self.user_profile, task_params["attr_name"])
             return float(val) if val is not None else 0.5
         return 0.5
 
