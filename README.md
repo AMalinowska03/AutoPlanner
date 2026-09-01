@@ -64,20 +64,48 @@ Instead of asking users to define their productivity patterns, the system automa
 
 <a id="installation"></a>
 
-## Instalation
+## Installation
 
-Required python 3.12+
+Requires **Python 3.12+** and an NVIDIA GPU with appropriate CUDA drivers (optional, but recommended).
+
+### 1. Virtual Environment
+
+Create and activate a virtual environment:
 
 ```bash
 python -m venv .venv
-# Linux/MacOS
+
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# Linux / macOS
 source .venv/bin/activate
-# Windows Powershell
-.venv\Scripts\Activate.ps1
 ```
 
-Run the following commands to set up the environment:
+### 2. PyTorch (with CUDA support)
+
+Install the CUDA 12.4-enabled build of PyTorch:
+
+```bash
+pip install torch --index-url [https://download.pytorch.org/whl/cu124](https://download.pytorch.org/whl/cu124)
+```
+
+### 3. Project Dependencies
+
+Install all core project dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+### 4. Spinning Up Setup
+
+Zarejestruj lokalny pakiet `spinningup` w środowisku wirtualnym w trybie edytowalnym (flaga `--no-deps` zapobiega próbie instalacji przestarzałych pakietów zdefiniowanych w oryginalnym repozytorium):
+
+```bash
+# Windows (PowerShell)
+pip install --no-deps -e .\spinningup
+
+# Linux / macOS
+pip install --no-deps -e ./spinningup
 ```
