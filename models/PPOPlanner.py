@@ -87,6 +87,8 @@ class PPOPlannerEnv(gym.Env):
             self.time_since_last_break / 4.0,  # why
             break_ratio
         ]
+        current_abs_time = self.current_day * 24.0 + self.current_time_in_day
+        total_experiment_hours = self.total_days * 24.0
 
         for i in range(self.max_tasks_count):
             if i < len(self.remaining_tasks):
@@ -94,11 +96,15 @@ class PPOPlannerEnv(gym.Env):
                 prio_map = {"low": 0.25, "medium": 0.5, "high": 0.75, "urgent": 1.0}
                 current_task_param = SKILL_ATTR_MAP.get(task.type)
                 current_emb = current_task_param["embedding"] if current_task_param else 0.0
+
+                deadline_hour = self._get_deadline_in_hours(task.deadline)
+                hours_left = max(0.0, deadline_hour - current_abs_time)
+                norm_deadline = min(1.0, hours_left / total_experiment_hours)
                 obs.extend([
                     float(task.workhours) / self.daily_work_time,
                     prio_map.get(task.priority, 0.5),
                     current_emb,
-                    1.0
+                    norm_deadline
                 ])
             else:
                 obs.extend([0.0, 0.0, 0.0, 0.0])
@@ -188,12 +194,20 @@ class PPOPlannerEnv(gym.Env):
             self.time_since_last_break += actual_duration
             self.last_task_type = task.type
 
-            # overtime penalty - the longer task takes to end the bigger penalty
             if end_time > self.work_end_hour:
+                # overtime penalty - the longer task takes to end the bigger penalty
                 overtime = end_time - self.work_end_hour
                 if overtime > 0.0:
                     reward -= overtime**2.0 * 3.0
 
+                worked_today = max(0.1, self.current_time_in_day - self.work_start_hour)
+                break_pct = self.total_break_time_today / worked_today
+                if 0.10 <= break_pct <= 0.15:
+                    reward += 3.0
+                elif break_pct < 0.10:
+                    reward -= 0.5
+                else:
+                    reward -= 5 * break_pct
                 self._advance_to_next_day()
             else:
                 self.current_time_in_day = end_time
@@ -208,16 +222,6 @@ class PPOPlannerEnv(gym.Env):
         return self._get_obs(), reward, terminated, truncated, {}
 
     def _advance_to_next_day(self):
-        worked_today = max(0.1, self.current_time_in_day - self.work_start_hour)
-        break_pct = self.total_break_time_today / worked_today
-        if 0.10 <= break_pct <= 0.15:
-            # Prawidłowy bilans przerw
-            pass
-        elif break_pct < 0.10:
-            pass  # Lekka kara za zbyt mało przerw
-        else:
-            pass  # Kara za nadmiar przerw
-
         self.current_day += 1
         self.current_time_in_day = self.work_start_hour
         self.time_since_last_break = 0.0
@@ -251,5 +255,11 @@ class PPOPlannerEnv(gym.Env):
 
 
 class PPOPlanner:
-    def __init__(self):
+    def __init__(self, user: User):
         self.list = None
+
+    def train(self):
+        pass
+
+    def execute_plan(self):
+        pass
