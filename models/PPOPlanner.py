@@ -4,7 +4,7 @@ import numpy as np
 import math
 from datetime import datetime
 
-from data.DbModels import User
+from data.DbModels import User, Task
 from simulation import UserSimulator
 from simulation.UserSimulator import SKILL_ATTR_MAP, calculate_switch_lag
 
@@ -23,6 +23,23 @@ NUM_TASK_FEATURES = 4
 
 TIME_MULTIPLIERS = [0.75, 1.0,  1.25, 1.5,  1.75, 2.0]
 
+class FlattenMultiDiscreteActionWrapper(gym.ActionWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        # Np. (51, 12) -> Discrete(612)
+        self.dims = env.action_space.nvec
+        self.action_space = gym.spaces.Discrete(int(np.prod(self.dims)))
+
+    def action(self, action):
+        """
+        Decoding scalar value 0..N*M-1 to tensor (task, time)
+        :param action:
+        :return:
+        """
+        action_idx = int(action)
+        time_act = action_idx % self.dims[1]
+        task_act = action_idx // self.dims[1]
+        return np.array([task_act, time_act])
 
 class PPOPlannerEnv(gym.Env):
     def __init__(self, user: User, tasks: list, max_tasks_count=50):
@@ -117,24 +134,20 @@ class PPOPlannerEnv(gym.Env):
         terminated = False
         truncated = False
 
+        end_time = self.current_time_in_day
+
         if action_type == 0:
             break_duration = (action_time+1)*5/60
             self.training_simulator.process_break(break_duration, self.current_time_in_day)
 
-            # penalty (beginning/end of day break, too many/few breaks)
-            if self.current_time_in_day == self.work_start_hour:
-                reward -= break_duration * 3.0
-            if self.current_time_in_day + break_duration == self.work_end_hour:
-                reward -= break_duration * 4.0
-
-            # reward (break for eating midday)
-            if 11.30 < self.current_time_in_day < 14.5 and 0.25 < break_duration < 0.75:
-                reward += break_duration * 5.0
+            reward += self._calculate_break_reward(break_duration)
 
             self.current_time_in_day += break_duration
             self.total_break_time_today += break_duration
             self.time_since_last_break = 0.0
+            end_time = self.current_time_in_day
         else:
+            current_abs_start = self.current_day * 24.0 + self.current_time_in_day  # hourly since experiment start
             task_idx = action_type - 1
             if task_idx >= len(self.remaining_tasks):
                 reward -= 10.0
@@ -150,67 +163,23 @@ class PPOPlannerEnv(gym.Env):
                 start_time=self.current_time_in_day,
                 context_switch_lag=lag
             )
-            time_multiplier = TIME_MULTIPLIERS[action_time % len(TIME_MULTIPLIERS)]
-            planned_duration = time_multiplier * float(task.workhours)
 
             # save to db - TODO
 
-            # deadline
-            global_end_hour = self.current_day * 24.0 + end_time
-            deadline_hours = self._get_deadline_in_hours(task.deadline)
+            reward += self._calculate_deadline_reward(task, end_time)
+            reward += self._calculate_time_allotment_reward(task, action_time, actual_duration)
+            reward += self._calculate_disruption_reward(task, current_abs_start)
 
-            prio_weights = {"low": 1.0, "medium": 2.0, "high": 4.0, "urgent": 8.0}
-            w_prio = prio_weights.get(task.priority, 1.0)
-
-            if global_end_hour > deadline_hours:
-                tardiness = global_end_hour - deadline_hours
-                reward -= (10.0 + tardiness * 2.0) * w_prio
-            else:
-                reward += 8.0 * w_prio
-                
-            #penalty (task execution time exceeded/finished early - exponential, disruption, overtime)
-            planning_time_difference = actual_duration - planned_duration
-            if -0.25 < planning_time_difference < 0.25:
-                reward += 5.0 / (1.0 + planning_time_difference*4.0)
-            elif planning_time_difference > 0.25:
-                reward -= planning_time_difference**2 * 6.0
-            elif planning_time_difference < -0.25:
-                reward -= abs(planning_time_difference) * 2.0
-
-            # disruptions and plan shifts
-            current_abs_start = self.current_day * 24.0 + self.current_time_in_day  # hourly since experiment start
-            if task.id in self.previous_plan:
-                prev_start = self.previous_plan[task.id]
-                shift = abs(current_abs_start - prev_start)  # how much was task shifted in time
-                if shift > 0.1:
-                    # the closer to the event in previous plan and the bigger the shift the bigger penalty
-                    time_to_event = max(0.1, prev_start - current_abs_start)
-                    reward -= (shift * 4.0) / math.sqrt(time_to_event)
-                else:
-                    reward += 2.0
 
             self.current_plan[task.id] = current_abs_start
             self.current_time_in_day = end_time
             self.time_since_last_break += actual_duration
             self.last_task_type = task.type
 
-            if end_time > self.work_end_hour:
-                # overtime penalty - the longer task takes to end the bigger penalty
-                overtime = end_time - self.work_end_hour
-                if overtime > 0.0:
-                    reward -= overtime**2.0 * 3.0
-
-                worked_today = max(0.1, self.current_time_in_day - self.work_start_hour)
-                break_pct = self.total_break_time_today / worked_today
-                if 0.10 <= break_pct <= 0.15:
-                    reward += 3.0
-                elif break_pct < 0.10:
-                    reward -= 0.5
-                else:
-                    reward -= 5 * break_pct
-                self._advance_to_next_day()
-            else:
-                self.current_time_in_day = end_time
+        if end_time > self.work_end_hour:
+            reward += self._calculate_overtime_reward(end_time)
+            reward += self._calculate_end_day_break_reward()
+            self._advance_to_next_day()
 
         if len(self.remaining_tasks) == 0:
             reward += 60.0
@@ -228,6 +197,82 @@ class PPOPlannerEnv(gym.Env):
         self.total_break_time_today = 0.0
         self.last_task_type = None
         self.training_simulator.reset(weekly=(self.current_day % 5 == 0))
+
+    def _calculate_break_reward(self, break_duration: float):
+        break_reward = 0.0
+        # penalty (beginning/end of day break, too many/few breaks)
+        if self.current_time_in_day == self.work_start_hour:
+            break_reward -= break_duration * 3.0
+        if self.current_time_in_day + break_duration == self.work_end_hour:
+            break_reward -= break_duration * 4.0
+
+        # reward (break for eating midday)
+        if 11.30 < self.current_time_in_day < 14.5 and 0.25 < break_duration < 0.75:
+            break_reward += break_duration * 5.0
+        return break_reward
+
+    def _calculate_deadline_reward(self, task: Task, end_time: float):
+        deadline_reward = 0.0
+        global_end_hour = self.current_day * 24.0 + end_time
+        deadline_hours = self._get_deadline_in_hours(task.deadline)
+
+        prio_weights = {"low": 1.0, "medium": 2.0, "high": 4.0, "urgent": 8.0}
+        w_prio = prio_weights.get(task.priority, 1.0)
+
+        if global_end_hour > deadline_hours:
+            tardiness = global_end_hour - deadline_hours
+            deadline_reward -= (10.0 + tardiness * 2.0) * w_prio
+        else:
+            deadline_reward += 8.0 * w_prio
+        return deadline_reward
+
+    def _calculate_time_allotment_reward(self, task:Task, action_time, actual_duration: float):
+        time_reward = 0.0
+        time_multiplier = TIME_MULTIPLIERS[action_time % len(TIME_MULTIPLIERS)]
+        planned_duration = time_multiplier * float(task.workhours)
+        # penalty (task execution time exceeded/finished early - exponential, disruption, overtime)
+        planning_time_difference = actual_duration - planned_duration
+        if -0.25 < planning_time_difference < 0.25:
+            time_reward += 5.0 / (1.0 + planning_time_difference * 4.0)
+        elif planning_time_difference > 0.25:
+            time_reward -= planning_time_difference ** 2 * 6.0
+        elif planning_time_difference < -0.25:
+            time_reward -= abs(planning_time_difference) * 2.0
+
+        return time_reward
+
+    def _calculate_disruption_reward(self, task: Task, current_abs_start: float):
+        disruption_reward = 0.0
+        if task.id in self.previous_plan:
+            prev_start = self.previous_plan[task.id]
+            shift = abs(current_abs_start - prev_start)  # how much was task shifted in time
+            if shift > 0.1:
+                # the closer to the event in previous plan and the bigger the shift the bigger penalty
+                time_to_event = max(0.1, prev_start - current_abs_start)
+                disruption_reward -= (shift * 4.0) / math.sqrt(time_to_event)
+            else:
+                disruption_reward += 2.0
+        return disruption_reward
+
+    def _calculate_overtime_reward(self, end_time: float):
+        # overtime penalty - the longer task takes to end the bigger penalty
+        overtime_reward = 0.0
+        overtime = end_time - self.work_end_hour
+        if overtime > 0.0:
+            overtime_reward -= overtime ** 2.0 * 3.0
+        return overtime_reward
+
+    def _calculate_end_day_break_reward(self):
+        break_reward = 0.0
+        worked_today = max(0.1, self.current_time_in_day - self.work_start_hour)
+        break_pct = self.total_break_time_today / worked_today
+        if 0.10 <= break_pct <= 0.15:
+            break_reward += 3.0
+        elif break_pct < 0.10:
+            break_reward -= 0.5
+        else:
+            break_reward -= 5 * break_pct
+        return break_reward
 
     def _get_deadline_in_hours(self, deadline):
         """
@@ -252,7 +297,6 @@ class PPOPlannerEnv(gym.Env):
             return float(deadline)
 
         return float(self.total_days * 24.0)
-
 
 class PPOPlanner:
     def __init__(self, user: User):

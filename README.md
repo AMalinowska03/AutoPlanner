@@ -87,7 +87,7 @@ source .venv/bin/activate
 Install the CUDA 12.4-enabled build of PyTorch:
 
 ```bash
-pip install torch --index-url [https://download.pytorch.org/whl/cu124](https://download.pytorch.org/whl/cu124)
+pip install torch --index-url https://download.pytorch.org/whl/cu124
 ```
 
 ### 3. Project Dependencies
