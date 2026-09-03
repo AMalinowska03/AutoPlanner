@@ -1,3 +1,8 @@
+from asyncio import all_tasks
+import os
+from typing import Optional
+
+import torch
 import gymnasium as gym
 import gymnasium.spaces as spaces
 import numpy as np
@@ -7,6 +12,9 @@ from datetime import datetime
 from data.DbModels import User, Task
 from simulation import UserSimulator
 from simulation.UserSimulator import SKILL_ATTR_MAP, calculate_switch_lag
+from spinup.algos.pytorch.ppo.ppo import ppo, core
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # - day
 # - hour
@@ -24,11 +32,11 @@ NUM_TASK_FEATURES = 4
 TIME_MULTIPLIERS = [0.75, 1.0,  1.25, 1.5,  1.75, 2.0]
 
 class FlattenMultiDiscreteActionWrapper(gym.ActionWrapper):
-    def __init__(self, env):
+    def __init__(self, env: gym.Env, num_time_bins: int = 12):
         super().__init__(env)
-        # Np. (51, 12) -> Discrete(612)
-        self.dims = env.action_space.nvec
-        self.action_space = gym.spaces.Discrete(int(np.prod(self.dims)))
+        self.num_time_bins = num_time_bins
+        total_actions = env.action_space.nvec[0] * self.num_time_bins
+        self.action_space = spaces.Discrete(total_actions)
 
     def action(self, action):
         """
@@ -37,9 +45,34 @@ class FlattenMultiDiscreteActionWrapper(gym.ActionWrapper):
         :return:
         """
         action_idx = int(action)
-        time_act = action_idx % self.dims[1]
-        task_act = action_idx // self.dims[1]
+        time_act = action_idx % self.num_time_bins
+        task_act = action_idx // self.num_time_bins
         return np.array([task_act, time_act])
+
+class GymnasiumToGymWrapper(gym.Wrapper):
+    """
+    Converts format returned by Gymnasium (5 values with terminated and truncated)
+    to standard Gym format (4 values where done = terminated or truncated)
+    and makes sure reset returns only observation without information.
+    """
+    def reset(self, **kwargs):
+        out = self.env.reset(**kwargs)
+        return out[0] if isinstance(out, tuple) else out
+
+    def step(self, action):
+        step_out = self.env.step(action)
+        if len(step_out) == 5:
+            obs, reward, terminated, truncated, info = step_out
+            done = bool(terminated or truncated)
+            return obs, reward, done, info
+        return step_out
+
+
+def make_wrapped_env(user, tasks, max_tasks_count=50):
+    env = PPOPlannerEnv(user, tasks, max_tasks_count=max_tasks_count)
+    env = FlattenMultiDiscreteActionWrapper(env, num_time_bins=12)
+    env = GymnasiumToGymWrapper(env)
+    return env
 
 class PPOPlannerEnv(gym.Env):
     def __init__(self, user: User, tasks: list, max_tasks_count=50):
@@ -299,11 +332,44 @@ class PPOPlannerEnv(gym.Env):
         return float(self.total_days * 24.0)
 
 class PPOPlanner:
-    def __init__(self, user: User):
+    def __init__(self, user: User, all_tasks: list, max_tasks_count: int):
         self.list = None
+        self.user = user
+        self.all_tasks = all_tasks
+        self.max_tasks_count = max_tasks_count
+        self.model_dir = "./PPOGenerated"
 
-    def train(self):
-        pass
+    def train(self, epochs: int = 40, steps_per_epoch: int = 2000, planner_name: Optional[str] = None):
+        env_fn = lambda: make_wrapped_env(self.user, self.all_tasks, self.max_tasks_count)
+
+        ppo(
+            env_fn=env_fn,
+            actor_critic=core.MLPActorCritic,
+            ac_kwargs=dict(hidden_sizes=(128, 128)),
+            seed=42,
+            steps_per_epoch=steps_per_epoch,
+            epochs=epochs,
+            gamma=0.99,
+            clip_ratio=0.2,
+            pi_lr=3e-4,
+            vf_lr=1e-3,
+            logger_kwargs=dict(output_dir=self.model_dir,
+                               exp_name=planner_name if planner_name is not None else f"planner_u{self.user.id}")
+        )
+
+    def load_planner_model(model_dir: str):
+        """
+        Loads pretrained model from given folder
+        """
+        model_path = os.path.join(model_dir, "pyt_save", "model.pt")
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Nie znaleziono pliku modelu pod adresem: {model_path}")
+
+        # Bezpieczne wczytanie z mapowaniem na właściwe urządzenie (CUDA/CPU)
+        model = torch.load(model_path, map_location=device)
+        model.eval()  # Przełączenie w tryb ewaluacji (wyłącza dropout/batchnorm)
+        return model
 
     def execute_plan(self):
         pass

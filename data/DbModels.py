@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, Float, DateTime
+from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, Float, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.mysql import VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
@@ -22,11 +22,14 @@ class User(Base):
 class Task(Base):
     __tablename__ = 'task'
     id = Column(Integer, primary_key=True)
+    task_group_id = Column(Integer, nullable=True)
     name = Column(String)
     workhours = Column(Integer)
     priority = Column(Enum("low", "medium", "high", "urgent"))
     type = Column(Enum("communication", "creativity", "technical", "routine", "analytical"))
     deadline = Column(DateTime)
+    phase = Column(Enum("pretrain", "online", "disruptions"), default="online")
+    is_disruptor = Column(Boolean, default=False)
 
 class Plan(Base):
     __tablename__ = 'plan'

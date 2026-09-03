@@ -304,12 +304,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                 obs_tensor = torch.as_tensor(o, dtype=torch.float32, device=device)
                 a, v, logp = ac.step(obs_tensor)
 
-            step_out = env.step(a)
-            if len(step_out) == 5:
-                next_o, r, terminated, truncated, _ = step_out
-                d = terminated or truncated
-            else:
-                next_o, r, d, _ = step_out
+            next_o, r, d, _ = env.step(a)
             ep_ret += r
             ep_len += 1
 
