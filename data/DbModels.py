@@ -1,6 +1,4 @@
 from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey, Float, DateTime, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.mysql import VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -22,7 +20,6 @@ class User(Base):
 class Task(Base):
     __tablename__ = 'task'
     id = Column(Integer, primary_key=True)
-    task_group_id = Column(Integer, nullable=True)
     name = Column(String)
     workhours = Column(Float)
     priority = Column(Enum("low", "medium", "high", "urgent"))
@@ -51,7 +48,13 @@ class PlanTask(Base):
 
 class Execution(Base):
     __tablename__ = 'execution'
+    id = Column(Integer, primary_key=True)
     plan_task_id = Column(Integer, ForeignKey('plan_task.id'))
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     energy = Column(Float)
+
+
+def init_db():
+    from data.database import engine
+    Base.metadata.create_all(bind=engine)

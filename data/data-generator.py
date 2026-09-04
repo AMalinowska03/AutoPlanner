@@ -4,15 +4,10 @@ import pandas as pd
 import numpy as np
 import random
 from datetime import datetime, timedelta
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from data.DbModels import Base, User, Task
+from data.database import engine
+from data.DbModels import init_db
 
-DATABASE_URL = "sqlite:///planner_experiment_data.db"
-engine = create_engine(DATABASE_URL, echo=False)
-SessionLocal = sessionmaker(bind=engine)
-
-Base.metadata.create_all(engine)
+init_db()
 
 
 def load_raw_csvs():
@@ -24,6 +19,7 @@ def load_raw_csvs():
     df_hr = pd.read_csv("kaggle_datasets/hr_allocation_dataset.csv")
     df_tasks = pd.read_csv("kaggle_datasets/taskdata.csv")
     return df_cog, df_hr, df_tasks
+
 
 def process_users(df_hr, df_cog):
     """
@@ -79,6 +75,7 @@ def process_users(df_hr, df_cog):
     cols_to_drop = ['technical_skill_score', 'communication_score',
                     'problem_solving_score', 'idle_time_hours', 'attendance_rate']
     return users.drop(columns=cols_to_drop)
+
 
 def process_and_combine_tasks(df_hr, df_tasks):
     """
@@ -167,8 +164,12 @@ def get_task_name_for_hr_dataset(df_tasks, row):
 
 
 def process_and_split_tasks(df_input):
+    """
+    If task takes longer that 3h to complete it is divided into shorter tasks to simplify the experiment
+    :param df_input: list of tasks
+    :return: divided tasks
+    """
     processed_records = []
-    group_counter = 1
     for _, row in df_input.iterrows():
         total_hours = row['workhours']
         name = row['name']
@@ -178,8 +179,6 @@ def process_and_split_tasks(df_input):
         # if task is longer than 3h we divide it into subtasks as simulator does not include it
         # division by model would be another complexity layer and not easily measurable
         if total_hours > 3.0:
-            current_group_id = group_counter
-            group_counter += 1
             remaining = total_hours
             part = 1
 
@@ -189,7 +188,6 @@ def process_and_split_tasks(df_input):
                 sub_duration = round(float(sub_duration), 2)
 
                 processed_records.append({
-                    'task_group_id': current_group_id,
                     'name': f"{name} (Part {part})",
                     'workhours': sub_duration,
                     'task_priority': priority,
@@ -208,7 +206,6 @@ def process_and_split_tasks(df_input):
                 work_h = float(np.random.choice([0.08, 0.17, 0.25, 0.5]))
 
             processed_records.append({
-                'task_group_id': None,
                 'name': name,
                 'workhours': round(work_h, 2),
                 'task_priority': priority,
@@ -218,70 +215,34 @@ def process_and_split_tasks(df_input):
     return pd.DataFrame(processed_records)
 
 
-# def generate_deadlines_for_phase(df_tasks, phase, start_date, end_date, seed=42):
-#     """
-#     Generates deadlines
-#     :param df_tasks: list of all tasks
-#     :param phase: experiment phase name
-#     :param start_date:
-#     :param end_date:
-#     :param seed: random seed
-#     :return:
-#     """
-#     np.random.seed(seed)
-#     full_df = []
-#     for sub_phase_tasks in df_tasks:
-#         df = sub_phase_tasks.copy().reset_index(drop=True)
-#         if len(df) == 0:
-#             return df
-#
-#         business_days = pd.date_range(start=start_date, end=end_date, freq='B')
-#
-#         # available deadline times, preferably end of day/midday
-#         possible_times, probabilities = [], []
-#         for h in range(8, 17):
-#             for m in range(0, 60, 5):
-#                 if h == 8 and m < 30:
-#                     continue
-#                 possible_times.append((h, m))
-#                 weight = 3.0 if h in [15, 16] else (1.5 if h in [11, 12] else 1.0)
-#                 probabilities.append(weight)
-#
-#         probabilities = np.array(probabilities) / sum(probabilities)
-#
-#         deadlines = []
-#         for _ in range(len(df)):
-#             day = np.random.choice(business_days)
-#             time_idx = np.random.choice(len(possible_times), p=probabilities)
-#             h, m = possible_times[time_idx]
-#             deadlines.append(pd.Timestamp(day).replace(hour=h, minute=m, second=0))
-#
-#         df['phase'] = phase
-#         df['deadline'] = deadlines
-#         df['is_disruptor'] = False
-#         full_df.append(df)
-#     return full_df
-
 def generate_deadlines_for_phase(
         df_tasks: List[pd.DataFrame],
         phase: str,
         start_date: Union[str, pd.Timestamp, datetime, List],
-        end_date: Union[str, pd.Timestamp, datetime, List] = None,
         shift_per_subphase: bool = True,
         seed: int = 42
-) -> List[pd.DataFrame]:
+) -> Tuple[List[pd.DataFrame], pd.Timestamp]:
     """
-    Generuje deadliny dla podfaz.
-    - Jeśli start_date to lista: każda podfaza i bierze start i end z listy[i].
-    - Jeśli start_date to pojedyncza data i shift_per_subphase=True:
-      kolejne podfazy dostają kolejne okna po dokładnie 4 tygodnie (20 dni roboczych).
-    - Jeśli start_date to pojedyncza data i shift_per_subphase=False:
-      wszystkie podfazy mają dokładnie takie samo 4-tygodniowe okno (dla pretreningu).
+    Generates deadlines for a phase divided into 20-workday sub phases
+    Deadlines are randomly chosen in a 20-workday span.
+    - If start_date is single date and shift_per_subphase=True:
+      next subphases will be assigned dates every 28 days.
+    - If start_date is single date and shift_per_subphase=False:
+      all subphases will be assigned same 28 days.
+    Deadline distribution is chosen for task subset for realistic experiment flow.
+    :param df_tasks: list of taskin phase
+    :param phase: name of experiment phase
+    :param start_date: start date of experiment - must be monday
+    :param shift_per_subphase: if dates should be moved for each sub phase to create continuing plan
+    :param seed:
+    :return:
     """
     np.random.seed(seed)
     full_df = []
 
-    # 1. Rozkład godzinowy (preferowany koniec dnia i okolice lunchu)
+    next_start_date = pd.to_datetime(start_date) if not isinstance(start_date, list) else pd.to_datetime(start_date[0])
+
+    # preferred midday/end day dates
     possible_times, time_weights = [], []
     for h in range(8, 17):
         for m in range(0, 60, 5):
@@ -292,49 +253,26 @@ def generate_deadlines_for_phase(
             time_weights.append(weight)
     time_probs = np.array(time_weights) / sum(time_weights)
 
-    # 2. Przetwarzanie podfaz
     for idx, sub_phase_tasks in enumerate(df_tasks):
         df = sub_phase_tasks.copy().reset_index(drop=True)
         if len(df) == 0:
             full_df.append(df)
             continue
 
-        # Ustalenie zakresu 20 dni roboczych (dokładnie 4 tygodnie)
-        if isinstance(start_date, list):
-            sub_start = pd.to_datetime(start_date[idx])
-            sub_end = pd.to_datetime(end_date[idx]) if end_date is not None else None
-            if sub_end is None:
-                business_days = pd.date_range(start=sub_start, periods=20, freq='B')
-            else:
-                business_days = pd.date_range(start=sub_start, end=sub_end, freq='B')
+        base_start = pd.to_datetime(start_date)
+        if shift_per_subphase:
+            sub_start = base_start + timedelta(weeks=4 * idx)
         else:
-            base_start = pd.to_datetime(start_date)
-            if shift_per_subphase:
-                # Kolejne podfazy to kolejne miesiące (+ idx * 4 tygodnie)
-                sub_start = base_start + timedelta(weeks=4 * idx)
-            else:
-                # Każda podfaza w tym samym oknie czasowym
-                sub_start = base_start
+            sub_start = base_start
 
-            # Dokładnie 4 tygodnie robocze = 20 dni
-            business_days = pd.date_range(start=sub_start, periods=20, freq='B')
+        # subphase gets 20 workdays to distribute deadlines
+        business_days = pd.date_range(start=sub_start, periods=20, freq='B')
+        next_start_date = business_days[-1] + pd.offsets.BDay(1)
 
         deadlines = []
-        # Rozkład dni w zależności od priorytetu
-        # (urgent: dni 0-4, high: dni 2-9, medium: dni 5-15, low: dni 8-19)
-        for _, row in df.iterrows():
-            prio = getattr(row, 'priority', 'medium')
-
-            if prio == 'urgent':
-                day_pool = business_days[:5]
-            elif prio == 'high':
-                day_pool = business_days[2:10]
-            elif prio == 'medium':
-                day_pool = business_days[5:16]
-            else:  # low
-                day_pool = business_days[8:]
-
-            chosen_day = np.random.choice(day_pool)
+        for _ in range(len(df)):
+            # randomly choosing deadline from given timeline
+            chosen_day = np.random.choice(business_days)
             time_idx = np.random.choice(len(possible_times), p=time_probs)
             h, m = possible_times[time_idx]
 
@@ -345,12 +283,13 @@ def generate_deadlines_for_phase(
         df['is_disruptor'] = False
         full_df.append(df)
 
-    return full_df
+    return full_df, next_start_date
 
 
-def create_disruptor_tasks(count, start_date, end_date, seed=999):
+def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
     """
     Generates disruptor tasks that will be added in experiment 2 during execution
+    :param subphase_count: count of subphases in disruptors experiment part
     :param count: number of tasks to generate
     :param start_date: deadline start date
     :param end_date: deadline end date
@@ -358,65 +297,72 @@ def create_disruptor_tasks(count, start_date, end_date, seed=999):
     :return:
     """
     np.random.seed(seed)
-    business_days = pd.date_range(start=start_date, end=end_date, freq='B')
-
-    types = ['communication', 'routine', 'technical', 'analytical', 'creativity']
-    type_probs = [0.35, 0.35, 0.10, 0.10, 0.10]  # most disruptors are communication or routine usually
-
-    disruptor_templates = {
-        'communication': ['Urgent client call', 'Ad-hoc sync with lead', 'Emergency mail response',
-                          'Slack escalations'],
-        'routine': ['Quick System fix', 'Approve urgent invoice', 'Access permission grant', 'Status update'],
-        'technical': ['Hotfix server crash', 'DB connection drop', 'Critical bug patch'],
-        'analytical': ['Quick metrics verification', 'Data drop anomaly check'],
-        'creativity': ['Urgent banner revision', 'Copywriting fix']
-    }
-
     disruptor_records = []
+    for i in range(subphase_count):
+        base_start = pd.to_datetime(start_date)
+        sub_start = base_start + timedelta(weeks=4 * i)
 
-    for i in range(1, count + 1):
-        t_type = np.random.choice(types, p=type_probs)
-        t_name = f"[DISRUPTOR] {np.random.choice(disruptor_templates[t_type])} #{i}"
+        # subphase gets 20 workdays to distribute deadlines
+        business_days = pd.date_range(start=sub_start, periods=20, freq='B')
 
-        # 5 to 60 minutes (0.08h - 1.0h)
-        duration = float(np.random.choice([round((x * 5.0 / 60.0), 2) for x in range(1, 13)]))
+        types = ['communication', 'routine', 'technical', 'analytical', 'creativity']
+        type_probs = [0.35, 0.35, 0.10, 0.10, 0.10]  # most disruptors are communication or routine usually
 
-        day = np.random.choice(business_days)
-        hour = np.random.choice(range(9, 17))
-        minute = np.random.choice([0, 15, 30, 45])
-        deadline = pd.Timestamp(day).replace(hour=hour, minute=minute, second=0)
+        disruptor_templates = {
+            'communication': ['Urgent client call', 'Ad-hoc sync with lead', 'Emergency mail response',
+                              'Slack escalations'],
+            'routine': ['Quick System fix', 'Approve urgent invoice', 'Access permission grant', 'Status update'],
+            'technical': ['Hotfix server crash', 'DB connection drop', 'Critical bug patch'],
+            'analytical': ['Quick metrics verification', 'Data drop anomaly check'],
+            'creativity': ['Urgent banner revision', 'Copywriting fix']
+        }
 
-        disruptor_records.append({
-            'task_group_id': None,
-            'name': t_name,
-            'workhours': duration,
-            'task_priority': np.random.choice(['high', 'urgent'], p=[0.4, 0.6]),
-            'department': t_type.capitalize(),
-            'type': t_type,
-            'phase': 'test_week',
-            'deadline': deadline,
-            'is_disruptor': True
-        })
+        for i in range(1, count + 1):
+            t_type = np.random.choice(types, p=type_probs)
+            t_name = f"[DISRUPTOR] {np.random.choice(disruptor_templates[t_type])} #{i}"
+
+            # 5 to 60 minutes (0.08h - 1.0h)
+            duration = float(np.random.choice([round((x * 5.0 / 60.0), 2) for x in range(1, 13)]))
+
+            day = np.random.choice(business_days)
+            hour = np.random.choice(range(9, 17))
+            minute = np.random.choice([0, 15, 30, 45])
+            deadline = pd.Timestamp(day).replace(hour=hour, minute=minute, second=0)
+
+            disruptor_records.append({
+                'name': t_name,
+                'workhours': duration,
+                'priority': np.random.choice(['high', 'urgent'], p=[0.4, 0.6]),
+                'type': t_type,
+                'phase': 'disruptions',
+                'phase_order': i,
+                'deadline': deadline,
+                'is_disruptor': True
+            })
 
     return pd.DataFrame(disruptor_records)
 
 
 def divide_tasks_to_phases(
-        task_pool: List[Task],
+        task_pool: pd.DataFrame,
         min_sub_workhours: float = 90.0,
         max_sub_workhours: float = 120.0,
         target_base_task_count: int = 100
-) -> Tuple[List[List[Task]], List[List[Task]], List[List[Task]], List[List[Task]]]:
+) -> Tuple[List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame]]:
     """
-    Dzieli pulę zadań na fazy: pretrain (60%), finetune (10%), phase1 (20%), phase2 (10%).
-    Wewnątrz każdej fazy tworzy podfazy o łącznym czasie w przedziale [90, 120] roboczogodzin,
-    zachowując zadane proporcje priorytetów i oznaczając zadania polem `phase_order`.
+    Divides task pool to experiment phases: pretrain (60%), finetune (10%), phase1 (20%), phase2 (10%)
+    Each phase is then divided into sub phases that collectively take between 90-120 workhours
+    keeping priority distribution and labeling phase_order to ake experiment organization easier
 
-    Zwraca: (pretrain_subs, finetune_subs, phase1_subs, phase2_subs), gdzie każdy element
-    to lista podfaz: [[task1, task2, ...], [task1, task2, ...], ...]
+    :param task_pool: all tasks
+    :param min_sub_workhours: minimum work hours for sub phase
+    :param max_sub_workhours: maximum work hours for sub phase
+    :param target_base_task_count: sup phase task count estimation
+    :return: (pretrain_subs, finetune_subs, phase1_subs, phase2_subs), where each element
+                is a sub phase list: [[task1, task2, ...], [task1, task2, ...], ...]
     """
     total_tasks = len(task_pool)
-    shuffled_pool = list(task_pool)
+    shuffled_pool = task_pool.to_dict('records')
     random.shuffle(shuffled_pool)
 
     phase_targets = [
@@ -434,7 +380,7 @@ def divide_tasks_to_phases(
     }
     remaining_pool = list(shuffled_pool)
 
-    df: Dict[str, List[List[Task]]] = {}
+    df: Dict[str, List[pd.DataFrame]] = {}
 
     # monthly task lists for training epochs/executions
     for phase_name, target_count in phase_targets:
@@ -445,10 +391,10 @@ def divide_tasks_to_phases(
             pool = remaining_pool
             remaining_pool = []
         by_prio = {
-            "urgent": [t for t in pool if t.priority == "urgent"],
-            "high": [t for t in pool if t.priority == "high"],
-            "medium": [t for t in pool if t.priority == "medium"],
-            "low": [t for t in pool if t.priority == "low"]
+            "urgent": [t for t in pool if t["priority"] == "urgent"],
+            "high": [t for t in pool if t["priority"] == "high"],
+            "medium": [t for t in pool if t["priority"] == "medium"],
+            "low": [t for t in pool if t["priority"] == "low"]
         }
 
         sub_phases = []
@@ -456,15 +402,15 @@ def divide_tasks_to_phases(
 
         while True:
             total_available = sum(len(v) for v in by_prio.values())
-            # Zakończ podział, gdy pula jest zbyt mała, aby utworzyć nową podfazę
+            # end division if tasks pool is too small to create new subphase
             if total_available < int(target_base_task_count * 0.6):
                 break
 
-            # Obliczenie wstępnej liczby zadań per priorytet
+            # initial priority distribution count for sub phase
             counts = {prio: int(target_base_task_count * w) for prio, w in prio_weights.items()}
 
             selected_batch = []
-            # Wyciągamy zadania ze zbioru (bez zwracania)
+            # selecting tasks
             for prio, count in counts.items():
                 available = by_prio[prio]
                 take_cnt = min(count, len(available))
@@ -473,11 +419,11 @@ def divide_tasks_to_phases(
                 for t in taken:
                     available.remove(t)
 
-            total_hours = sum(float(t.workhours) for t in selected_batch)
+            total_hours = sum(float(t["workhours"]) for t in selected_batch)
 
             # add tasks if there is still time to fill
             attempts = 0
-            while total_hours < min_sub_workhours and attempts < 5:
+            while total_hours < min_sub_workhours and attempts < 100:
                 available_prios = [p for p, tasks in by_prio.items() if len(tasks) > 0]
                 if not available_prios:
                     break  # no more tasks for phase
@@ -487,28 +433,28 @@ def divide_tasks_to_phases(
 
                 new_t = by_prio[chosen_prio].pop(random.randrange(len(by_prio[chosen_prio])))
                 selected_batch.append(new_t)
-                total_hours += float(new_t.workhours)
+                total_hours += float(new_t["workhours"])
 
             # take out tasks if they exceed max hours
             attempts = 0
-            while total_hours > max_sub_workhours and len(selected_batch) > 0 and attempts < 5:
+            while total_hours > max_sub_workhours and len(selected_batch) > 0 and attempts < 100:
                 # take out random tasks and put back to pool
                 drop_idx = random.randrange(len(selected_batch))
                 dropped_t = selected_batch.pop(drop_idx)
-                by_prio[dropped_t.priority].append(dropped_t)
-                total_hours -= float(dropped_t.workhours)
+                by_prio[dropped_t["priority"]].append(dropped_t)
+                total_hours -= float(dropped_t["workhours"])
 
             # when correct subset ready save it
             if total_hours >= min_sub_workhours:
                 for t in selected_batch:
-                    t.phase_order = phase_order
+                    t["phase_order"] = phase_order
 
-                sub_phases.append(selected_batch)
+                sub_phases.append(pd.DataFrame(selected_batch))
                 phase_order += 1
             else:
                 # not enough hours and not enough tasks to choose from - return to pool
                 for t in selected_batch:
-                    by_prio[t.priority].append(t)
+                    by_prio[t["priority"]].append(t)
                 break
 
         df[phase_name] = sub_phases
@@ -517,7 +463,10 @@ def divide_tasks_to_phases(
 
     return df['pretrain'], df['finetune'], df['phase1'], df['phase2']
 
-def run_pipeline():
+
+def run_pipeline(global_seed=42):
+    random.seed(global_seed)
+    np.random.seed(global_seed)
     print("Loading CSV...")
     df_cog, df_hr, df_tasks = load_raw_csvs()
 
@@ -529,29 +478,29 @@ def run_pipeline():
 
     print("Dividing tasks and generating deadlines...")
     pretrain_tasks_lists_df, finetune_tasks_lists_df, phase1_tasks_lists_df, phase2_tasks_lists_df = divide_tasks_to_phases(clean_tasks_pool)
-    pretrain_tasks_df = generate_deadlines_for_phase(pretrain_tasks_lists_df, "pretrain", '2027-02-01', '2027-02-28', 100)
-    finetune_tasks_df = generate_deadlines_for_phase(finetune_tasks_lists_df, "finetune", '2027-02-01', '2027-02-28', 101)
-    phase1_tasks_df = generate_deadlines_for_phase(phase1_tasks_lists_df, "online", '2027-02-01', '2027-02-28', 102)
-    phase2_tasks_df = generate_deadlines_for_phase(phase2_tasks_lists_df, "disruptors", '2027-02-01', '2027-02-28', 103)
-    disruptor_tasks = create_disruptor_tasks(20, '2027-05-31', '2027-06-27', 103)
+    pretrain_tasks_df, _ = generate_deadlines_for_phase(pretrain_tasks_lists_df, "pretrain", '2027-02-01', False, 100)
+    finetune_tasks_df, _ = generate_deadlines_for_phase(finetune_tasks_lists_df, "finetune", '2027-02-01', False, 101)
+    phase1_tasks_df, disruptors_start_day = generate_deadlines_for_phase(phase1_tasks_lists_df, "online", '2027-01-04', shift_per_subphase=True, seed=102)
+    phase2_tasks_df, _ = generate_deadlines_for_phase(phase2_tasks_lists_df, "disruptions", disruptors_start_day, shift_per_subphase=True, seed=103)
+    disruptor_tasks = create_disruptor_tasks(len(phase2_tasks_df), 10, disruptors_start_day, 103)
 
     print("Saving to SQLite...")
-    session = SessionLocal()
     try:
-        # save users
-        users_df.to_sql('user', con=engine, if_exists='append', index=False)
+        with engine.begin() as connection:
+            # save users
+            users_df.to_sql('user', con=connection, if_exists='append', index=False)
 
-        # save all tasks
-        all_tasks = pd.concat([pretrain_tasks_df, finetune_tasks_df, phase1_tasks_df, phase2_tasks_df, disruptor_tasks], ignore_index=True)
-        all_tasks.to_sql('task', con=engine, if_exists='append', index=False)
+            # save all tasks
+            flat_dfs = [df for sublist in [pretrain_tasks_df, finetune_tasks_df, phase1_tasks_df, phase2_tasks_df] for df in
+                        sublist] + [disruptor_tasks]
+            all_tasks = pd.concat(flat_dfs, ignore_index=True)
+            all_tasks.to_sql('task', con=connection, if_exists='append', index=False)
 
-        session.commit()
-        print("Success! Database if filled.")
+            print("Success! Database if filled.")
     except Exception as e:
-        session.rollback()
         print(f"Error when saving to database: {e}")
     finally:
-        session.close()
+        pass
 
 
 if __name__ == "__main__":
