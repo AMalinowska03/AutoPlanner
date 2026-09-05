@@ -367,8 +367,8 @@ def divide_tasks_to_phases(
 
     phase_targets = [
         ('pretrain', int(total_tasks * 0.60)),
-        ('finetune', int(total_tasks * 0.10)),
-        ('phase1', int(total_tasks * 0.20)),
+        ('finetune', int(total_tasks * 0.20)),
+        ('phase1', int(total_tasks * 0.10)),
         ('phase2', None)  # rest
     ]
 

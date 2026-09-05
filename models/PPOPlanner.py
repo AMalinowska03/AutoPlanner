@@ -1,6 +1,7 @@
+import copy
 from asyncio import all_tasks
 import os
-from typing import Optional
+from typing import Optional, List
 
 import torch
 import gymnasium as gym
@@ -31,56 +32,22 @@ NUM_TASK_FEATURES = 4
 
 TIME_MULTIPLIERS = [0.75, 1.0,  1.25, 1.5,  1.75, 2.0]
 
-class FlattenMultiDiscreteActionWrapper(gym.ActionWrapper):
-    def __init__(self, env: gym.Env, num_time_bins: int = 12):
-        super().__init__(env)
-        self.num_time_bins = num_time_bins
-        total_actions = env.action_space.nvec[0] * self.num_time_bins
-        self.action_space = spaces.Discrete(total_actions)
-
-    def action(self, action):
-        """
-        Decoding scalar value 0..N*M-1 to tensor (task, time)
-        :param action:
-        :return:
-        """
-        action_idx = int(action)
-        time_act = action_idx % self.num_time_bins
-        task_act = action_idx // self.num_time_bins
-        return np.array([task_act, time_act])
-
-class GymnasiumToGymWrapper(gym.Wrapper):
-    """
-    Converts format returned by Gymnasium (5 values with terminated and truncated)
-    to standard Gym format (4 values where done = terminated or truncated)
-    and makes sure reset returns only observation without information.
-    """
-    def reset(self, **kwargs):
-        out = self.env.reset(**kwargs)
-        return out[0] if isinstance(out, tuple) else out
-
-    def step(self, action):
-        step_out = self.env.step(action)
-        if len(step_out) == 5:
-            obs, reward, terminated, truncated, info = step_out
-            done = bool(terminated or truncated)
-            return obs, reward, done, info
-        return step_out
-
-
-def make_wrapped_env(user, tasks, max_tasks_count=50):
-    env = PPOPlannerEnv(user, tasks, max_tasks_count=max_tasks_count)
-    env = FlattenMultiDiscreteActionWrapper(env, num_time_bins=12)
-    env = GymnasiumToGymWrapper(env)
-    return env
 
 class PPOPlannerEnv(gym.Env):
-    def __init__(self, user: User, tasks: list, max_tasks_count=50):
+    def __init__(
+            self,
+            users_pool: List[User],
+            divided_tasks: dict,
+            save_to_db: bool = False,
+            group_id: int = 0,
+            max_tasks_count=50
+    ):
         super().__init__()
-        self.user = user
-        self.tasks = tasks
+        self.user = users_pool[0]
+        self.users_pool = users_pool
+        self.divided_tasks = divided_tasks
         self.max_tasks_count = max_tasks_count
-        self.training_simulator = UserSimulator(user)
+        self.training_simulator = UserSimulator(self.user)
         self.action_space = spaces.MultiDiscrete([max_tasks_count + 1, 12])
         self.observation_space = spaces.Box(
                 low=-1,
@@ -93,30 +60,52 @@ class PPOPlannerEnv(gym.Env):
         self.total_break_time_today = 0.0
         self.last_task_type = None
         self.remaining_tasks = []
+        self.backlog = []
         self.current_plan = {}
         self.metrics_history = []
         self.previous_plan = {}
+        self.plan_record = None
+        self.total_days = 20  # 4 weeks * 5 days for experiment
+        self.save_to_db = save_to_db
+        self.group_id = group_id
+        self.current_time_in_day = None
+        self._update_work_hours()
 
+    def _update_work_hours(self):
         self.work_start_hour = (
-            user.work_start_time.hour + user.work_start_time.minute / 60.0
-            if isinstance(user.work_start_time, datetime) else 8.0
+            self.user.work_start_time.hour + self.user.work_start_time.minute / 60.0
+            if isinstance(self.user.work_start_time, datetime) else 8.0
         )
         self.work_end_hour = (
-            user.work_end_time.hour + user.work_end_time.minute / 60.0
-            if isinstance(user.work_end_time, datetime) else 16.0
+            self.user.work_end_time.hour + self.user.work_end_time.minute / 60.0
+            if isinstance(self.user.work_end_time, datetime) else 16.0
         )
         self.daily_work_time = self.work_end_hour - self.work_start_hour
-        self.total_days = 20  # 4 weeks * 5 days for experiment
         self.current_time_in_day = self.work_start_hour
 
     def reset(self, seed=None, options=None):
+        # if training we switch user for each epoch
+        if len(self.users_pool) > 1:
+            self.user = np.random.choice(self.users_pool)
+            self.training_simulator = UserSimulator(self.user)
+            self._update_work_hours()
+
+        if self.save_to_db:
+            chosen_tasks_set = self.divided_tasks[self.group_id]
+            self.group_id += 1
+        else:
+            available_orders = list(self.divided_tasks.keys())
+            chosen_order = np.random.choice(available_orders)
+            chosen_tasks_set = copy.deepcopy(self.divided_tasks[chosen_order])
+
         self.training_simulator.reset()
         self.previous_plan = {}
         self.current_time_in_day = self.work_start_hour
         self.time_since_last_break = 0.0
         self.total_break_time_today = 0.0
         self.last_task_type = None
-        self.remaining_tasks = [t for t in self.tasks[:self.max_tasks_count]]
+        self.remaining_tasks = chosen_tasks_set[:self.max_tasks_count]
+        self.backlog = chosen_tasks_set[self.max_tasks_count:]
         self.current_plan = {}
         self.metrics_history = []
         return self._get_obs(), {}
@@ -167,8 +156,6 @@ class PPOPlannerEnv(gym.Env):
         terminated = False
         truncated = False
 
-        end_time = self.current_time_in_day
-
         if action_type == 0:
             break_duration = (action_time+1)*5/60
             self.training_simulator.process_break(break_duration, self.current_time_in_day)
@@ -178,6 +165,7 @@ class PPOPlannerEnv(gym.Env):
             self.current_time_in_day += break_duration
             self.total_break_time_today += break_duration
             self.time_since_last_break = 0.0
+            self.last_task_type = None  # break resets the mind, so we don't have a lag before the next task - simplified logic
             end_time = self.current_time_in_day
         else:
             current_abs_start = self.current_day * 24.0 + self.current_time_in_day  # hourly since experiment start
@@ -187,6 +175,9 @@ class PPOPlannerEnv(gym.Env):
                 return self._get_obs(), reward, terminated, truncated, {}
 
             task = self.remaining_tasks.pop(task_idx)
+            if self.backlog:
+                self.remaining_tasks.append(self.backlog.pop(0))
+
             lag = calculate_switch_lag(self.last_task_type, task.type)
             attention_at_start = self.training_simulator.get_current_attention(self.current_time_in_day)
             energy_at_start = self.training_simulator.get_current_energy(self.current_time_in_day)
@@ -197,12 +188,12 @@ class PPOPlannerEnv(gym.Env):
                 context_switch_lag=lag
             )
 
-            # save to db - TODO
+            if self.save_to_db and self.plan_record:
+                self._save_execution_to_db(task, current_abs_start, end_time, energy_used)
 
             reward += self._calculate_deadline_reward(task, end_time)
             reward += self._calculate_time_allotment_reward(task, action_time, actual_duration)
             reward += self._calculate_disruption_reward(task, current_abs_start)
-
 
             self.current_plan[task.id] = current_abs_start
             self.current_time_in_day = end_time
@@ -331,13 +322,59 @@ class PPOPlannerEnv(gym.Env):
 
         return float(self.total_days * 24.0)
 
+
+class FlattenMultiDiscreteActionWrapper(gym.ActionWrapper):
+    def __init__(self, env: gym.Env, num_time_bins: int = 12):
+        super().__init__(env)
+        self.num_time_bins = num_time_bins
+        total_actions = env.action_space.nvec[0] * self.num_time_bins
+        self.action_space = spaces.Discrete(total_actions)
+
+    def action(self, action):
+        """
+        Decoding scalar value 0..N*M-1 to tensor (task, time)
+        :param action:
+        :return:
+        """
+        action_idx = int(action)
+        time_act = action_idx % self.num_time_bins
+        task_act = action_idx // self.num_time_bins
+        return np.array([task_act, time_act])
+
+
+class GymnasiumToGymWrapper(gym.Wrapper):
+    """
+    Converts format returned by Gymnasium (5 values with terminated and truncated)
+    to standard Gym format (4 values where done = terminated or truncated)
+    and makes sure reset returns only observation without information.
+    """
+    def reset(self, **kwargs):
+        out = self.env.reset(**kwargs)
+        return out[0] if isinstance(out, tuple) else out
+
+    def step(self, action):
+        step_out = self.env.step(action)
+        if len(step_out) == 5:
+            obs, reward, terminated, truncated, info = step_out
+            done = bool(terminated or truncated)
+            return obs, reward, done, info
+        return step_out
+
+
+def make_wrapped_env(user, tasks, max_tasks_count=50):
+    env = PPOPlannerEnv(user, tasks, max_tasks_count=max_tasks_count)
+    env = FlattenMultiDiscreteActionWrapper(env, num_time_bins=12)
+    env = GymnasiumToGymWrapper(env)
+    return env
+
+
 class PPOPlanner:
     def __init__(self, user: User, all_tasks: list, max_tasks_count: int):
         self.list = None
         self.user = user
         self.all_tasks = all_tasks
         self.max_tasks_count = max_tasks_count
-        self.model_dir = "./PPOGenerated"
+        self.storage_path = "db/models_store.db"
 
     def train(self, epochs: int = 40, steps_per_epoch: int = 2000, planner_name: Optional[str] = None):
         env_fn = lambda: make_wrapped_env(self.user, self.all_tasks, self.max_tasks_count)
