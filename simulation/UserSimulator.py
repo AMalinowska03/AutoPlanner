@@ -8,13 +8,13 @@ from data.DbModels import User, Task, Plan, PlanTask, Execution
 
 CHRONOTYPES = {
     "morning_lark": {
-        "peak_attention_factor": 3,
+        "peak_attention_factor": 9,
     },
     "intermediate": {
-        "peak_attention_factor": 6,
+        "peak_attention_factor": 12,
     },
     "night_owl": {
-        "peak_attention_factor": 10,
+        "peak_attention_factor": 16,
     },
 }
 
@@ -28,46 +28,50 @@ SKILL_ATTR_MAP = {
 
 SWITCH_MATRIX: dict[tuple[str, str], float] = {
     # ------------------ from: COMMUNICATION ------------------
-    ("communication", "communication"): 0.0,
-    ("communication", "routine"): 5 / 60,        # 5 min (switch to mentally easier task)
-    ("communication", "creativity"): 15 / 60,    # 15 min (wyciszenie i zmiana trybu na generatywny)
-    ("communication", "technical"): 15 / 60,     # 15 min (przejście do logiki implementacyjnej)
-    ("communication", "analytical"): 20 / 60,    # 20 min (wejście w stan głębokiej dedukcji po rozmowach)
+    ("communication", "communication"): (0.0, 1.0),
+    ("communication", "routine"): (0.1, 5 / 60),        # 5 min (switch to mentally easier task)
+    ("communication", "creativity"): (0.2, 15 / 60),    # 15 min (wyciszenie i zmiana trybu na generatywny)
+    ("communication", "technical"): (0.6, 15 / 60),     # 15 min (przejście do logiki implementacyjnej)
+    ("communication", "analytical"): (0.6, 20 / 60),    # 20 min (wejście w stan głębokiej dedukcji po rozmowach)
 
     # ------------------ from: CREATIVITY ------------------
-    ("creativity", "creativity"): 0.0,
-    ("creativity", "routine"): 5 / 60,           # 5 min
-    ("creativity", "communication"): 10 / 60,    # 10 min (wyjście ze stanu flow do interakcji)
-    ("creativity", "technical"): 20 / 60,        # 20 min (przestawienie z myślenia dywergencyjnego na syntaktyczne)
-    ("creativity", "analytical"): 25 / 60,       # 25 min (największy koszt poznawczy: kreacja -> ścisła weryfikacja)
+    ("creativity", "creativity"): (0.0, 1.0),
+    ("creativity", "routine"): (0.1, 5 / 60),           # 5 min
+    ("creativity", "communication"): (0.4, 10 / 60),    # 10 min (wyjście ze stanu flow do interakcji)
+    ("creativity", "technical"): (0.6, 20 / 60),        # 20 min (przestawienie z myślenia dywergencyjnego na syntaktyczne)
+    ("creativity", "analytical"): (0.8, 25 / 60),       # 25 min (największy koszt poznawczy: kreacja -> ścisła weryfikacja)
 
     # ------------------ from: TECHNICAL ------------------
-    ("technical", "technical"): 0.0,
-    ("technical", "routine"): 5 / 60,            # 5 min
-    ("technical", "communication"): 10 / 60,     # 10 min (wybicie z kodu/architektury do rozmowy)
-    ("technical", "analytical"): 10 / 60,        # 10 min (pokrewne domeny ścisłe, mały narzut)
-    ("technical", "creativity"): 20 / 60,        # 20 min (przejście z wąskich reguł technicznych do otwartej kreacji)
+    ("technical", "technical"): (0.0, 1.0),
+    ("technical", "routine"): (0.2, 5 / 60),            # 5 min
+    ("technical", "communication"): (0.4, 10 / 60),     # 10 min (wybicie z kodu/architektury do rozmowy)
+    ("technical", "analytical"): (0.4, 10 / 60),        # 10 min (pokrewne domeny ścisłe, mały narzut)
+    ("technical", "creativity"): (0.4, 20 / 60),        # 20 min (przejście z wąskich reguł technicznych do otwartej kreacji)
 
     # ------------------ from: ROUTINE ------------------
-    ("routine", "routine"): 0.0,
-    ("routine", "communication"): 5 / 60,        # 5 min (łatwe przejście z zadań odtwórczych)
-    ("routine", "technical"): 15 / 60,           # 15 min (wejście w wysokie skupienie ze stanu niskiego wysiłku)
-    ("routine", "analytical"): 15 / 60,          # 15 min
-    ("routine", "creativity"): 15 / 60,          # 15 min
+    ("routine", "routine"): (0.0, 1.0),
+    ("routine", "communication"): (0.2, 5 / 60),        # 5 min (łatwe przejście z zadań odtwórczych)
+    ("routine", "technical"): (0.8, 15 / 60),           # 15 min (wejście w wysokie skupienie ze stanu niskiego wysiłku)
+    ("routine", "analytical"): (0.8, 15 / 60),          # 15 min
+    ("routine", "creativity"): (0.4, 15 / 60),          # 15 min
 
     # ------------------ from: ANALYTICAL ------------------
-    ("analytical", "analytical"): 0.0,
-    ("analytical", "routine"): 5 / 60,           # 5 min
-    ("analytical", "technical"): 10 / 60,        # 10 min (pokrewny tryb skupienia)
-    ("analytical", "communication"): 10 / 60,    # 10 min (wyjście z analizy danych)
-    ("analytical", "creativity"): 25 / 60,       # 25 min (przejście ze ścisłych reguł konwergencyjnych do swobodnej kreacji)
+    ("analytical", "analytical"): (0.0, 1.0),
+    ("analytical", "routine"): (0.2, 5 / 60),           # 5 min
+    ("analytical", "technical"): (0.4, 10 / 60),        # 10 min (pokrewny tryb skupienia)
+    ("analytical", "communication"): (0.4, 10 / 60),    # 10 min (wyjście z analizy danych)
+    ("analytical", "creativity"): (0.4, 25 / 60),       # 25 min (przejście ze ścisłych reguł konwergencyjnych do swobodnej kreacji)
 }
+PRODUCTIVITY_REF = 0.8
+SKILL_REF = 0.5
+SKILL_SPEED_WEIGHT = 0.5
+ENERGY_PER_WORKHOUR = 0.05
+DEBT_THRESHOLD = 0.3
 
-
-def calculate_switch_lag(prev_task_type: str | None, current_task_type: str) -> float:
+def calculate_switch_lag(prev_task_type: str | None, current_task_type: str) -> tuple[float, float]:
     if prev_task_type is None:
-        return 0.0
-    return SWITCH_MATRIX.get((prev_task_type, current_task_type), 10 / 60)
+        return 0.0, 1.0
+    return SWITCH_MATRIX.get((prev_task_type, current_task_type), (0.4, 0.25))
 
 
 class UserSimulator:
@@ -85,6 +89,19 @@ class UserSimulator:
             val = getattr(self.user_profile, task_params["attr_name"])
             return float(val) if val is not None else 0.5
         return 0.5
+
+    def process_passive_energy_usage(self, time):
+        """
+        Energy left at given time if there was only passive energy usage
+        :param time: hour of day expressed in decimal format (example: 14.5 -> 14:30)
+        :return:
+        """
+        start_hour = (
+            self.user_profile.work_start_time.hour + self.user_profile.work_start_time.minute / 60.0
+            if isinstance(self.user_profile.work_start_time, datetime)
+            else float(self.user_profile.work_start_time or 8.0)
+        )
+        return self.start_energy - 0.01 * max(0.0, time - start_hour)
 
     def get_current_energy(self, time: float) -> float:
         """
@@ -104,9 +121,8 @@ class UserSimulator:
         :param time: `float` time expressed in decimal format (example: 14.5 -> 14:30)
         :return:
         """
-        base_attention = 0.7
-        amplitude = 0.3
-        return base_attention + amplitude * math.sin(2*math.pi*(time - self.peak_attention_factor)/24)
+        amplitude = 0.15
+        return amplitude * math.cos(2*math.pi*(time - self.peak_attention_factor)/24)
 
     def get_productivity(self, time: float) -> float:
         """
@@ -114,9 +130,9 @@ class UserSimulator:
         :param time:
         :return:
         """
-        return self.get_current_energy(time) * self.get_current_attention(time)
+        return min(1.0, max(0.0, (self.get_current_energy(time) + self.get_current_attention(time))))
 
-    def execute_task(self, task: Task, start_time: float, context_switch_lag: float = 0.0) -> tuple[float, float, float]:
+    def execute_task(self, task: Task, start_time: float, context_switch_lag: tuple[float, float] = (0.0, 1.0)) -> tuple[float, float, float]:
         """
         Processes energy usage and time needed for a given task at a given timestamp
         adding it toward task energy usage for the day
@@ -128,37 +144,34 @@ class UserSimulator:
         dt = 0.017  # around a minute, step duration for performing task
         work_remaining = float(task.workhours)
         skill = self._get_skill_level(task.type)
-        skill_speed_factor = 0.5 + 0.5 * skill
+        skill_speed_factor = 1 + SKILL_SPEED_WEIGHT * (skill - SKILL_REF)
 
-        base_drain_rate = 0.05  # bazowe zużycie na godzinę przy wykonywaniu pracy
-        standard_drain_rate = base_drain_rate * (1.5 - skill)
+        # standard_drain_rate = base_drain_rate * (1.5 - skill)
 
         current_time = start_time
         total_task_energy = 0.0
 
         while work_remaining > 0:
             elapsed = current_time - start_time
-            in_switch_phase = elapsed < context_switch_lag
+            lag_cost, lag_duration = context_switch_lag
+            in_switch_phase = elapsed <= lag_duration and  lag_cost > 0 and lag_duration > 0
 
-            # Aktualna wydajność w chwili t z uwzględnieniem skilla
+            # current execution efficiency for given time
             productivity = self.get_productivity(current_time)
-            effective_speed = max(0.1, productivity * skill_speed_factor)
+            effective_speed = min(1.5, max(0.25, productivity/PRODUCTIVITY_REF * skill_speed_factor))
 
-            # 2. Modyfikatory w fazie przełączania kontekstu
+            # if we are in context switch window we slow down task execution,
+            # exponentially changing the impact to represent adjustment period
             if in_switch_phase:
-                # Drastyczny spadek tempa realizacji właściwego zadania (np. 80% spowolnienia)
-                effective_speed *= 0.20
-                # Zwiększony drenaż energii przez wysiłek skupienia i zmianę reguł (1.5x)
-                current_drain_rate = standard_drain_rate * 1.50
-            else:
-                current_drain_rate = standard_drain_rate
+                # impact on both execution speed and energy drain
+                effective_speed *= 1 - lag_cost*math.exp(-elapsed/lag_duration)
 
-            # Postęp wykonany w kroku dt
+            # how much work was performed in given time, depending on productivity and skill level
             work_done = effective_speed * dt
             work_remaining -= work_done
 
-            # Zużycie energii w kroku dt
-            step_energy = current_drain_rate * dt
+            # energy usage in given time step
+            step_energy = ENERGY_PER_WORKHOUR * work_done
             self.task_energy_usage += step_energy
             total_task_energy += step_energy
 
@@ -166,19 +179,6 @@ class UserSimulator:
 
         actual_duration = current_time - start_time
         return actual_duration, current_time, total_task_energy
-
-    def process_passive_energy_usage(self, time):
-        """
-        Energy left at given time if there was only passive energy usage
-        :param time: hour of day expressed in decimal format (example: 14.5 -> 14:30)
-        :return:
-        """
-        start_hour = (
-            self.user_profile.work_start_time.hour + self.user_profile.work_start_time.minute / 60.0
-            if isinstance(self.user_profile.work_start_time, datetime)
-            else float(self.user_profile.work_start_time or 8.0)
-        )
-        return self.start_energy - 0.02 * max(0.0, time - start_hour)
 
     def process_break(self, duration: float, time: float):
         """
@@ -191,14 +191,23 @@ class UserSimulator:
         recovery_factor = 0.5
         break_energy_restoration = ((self.start_energy - self.get_current_energy(time)) *
                                     (1 - math.exp(-recovery_factor * duration)))
-        self.task_energy_usage = min(0.0, self.task_energy_usage - break_energy_restoration)
+        self.task_energy_usage = max(0.0, self.task_energy_usage - break_energy_restoration)
 
-    def reset(self, weekly=False):
+    def reset(self, current_time: float, user_work_end_time: float, weekly=False):
         """
         Reset energy counters for user after a day/week
+        :param current_time: time of day after performing tasks
+        :param user_work_end_time: time of day when user finishes work:
         :param weekly:
         :return:
         """
+        if current_time >= user_work_end_time and current_time - user_work_end_time >= DEBT_THRESHOLD:
+            end_energy = self.get_current_energy(current_time)
+            deficit_ratio = (DEBT_THRESHOLD - end_energy) / DEBT_THRESHOLD
+
+            self.energy_debt = min(0.4, 0.2 * deficit_ratio * (1.0 - end_energy))
+
+        self.task_energy_usage = 0
         if weekly:
             self.energy_debt = 0
             self.start_energy = 1

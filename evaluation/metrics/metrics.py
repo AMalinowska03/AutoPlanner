@@ -26,7 +26,7 @@ def task_time_estimation_score(executed_tasks: List[Execution]) -> float:
     weight_sum = 0.0
     for execution in executed_tasks:
         planned_task = execution.plan_task
-        if planned_task.task_id == 0 or planned_task.task is None:
+        if planned_task.task.is_break:
             continue
         expected_time = (planned_task.end_time - planned_task.start_time).total_seconds()
         execution_time = (execution.end_time - execution.start_time).total_seconds()
@@ -43,7 +43,7 @@ def task_execution_delay_score(executed_tasks: List[Execution]):
     priority_weighed_delays = 0.0
     weight_sum = 0.0
     for execution in executed_tasks:
-        if execution.plan_task.task_id == 0 or execution.plan_task.task is None:
+        if execution.plan_task.task.is_break:
             continue
         task = execution.plan_task.task
         delay = (execution.end_time - task.deadline).total_seconds() / 3600.0
@@ -80,7 +80,7 @@ def energy_distribution_score(planned_tasks: List[PlanTask]) -> float:
     weighted_alignment = 0.0
 
     for pt in planned_tasks:
-        if pt.task_id == 0 or pt.task is None:
+        if pt.task.is_break:
             continue
         user = pt.user
         task = pt.task
@@ -131,7 +131,7 @@ def context_switch_score(plan: Plan) -> dict[str, float]:
         prev_type = None
         for pt in day_tasks:
             # when break there is no context switch
-            if pt.task_id == 0 or pt.task is None:
+            if pt.task.is_break:
                 prev_type = None
                 continue
 
@@ -139,7 +139,8 @@ def context_switch_score(plan: Plan) -> dict[str, float]:
             total_work_hours += float(pt.task.workhours)
 
             if prev_type is not None:
-                total_switch_hours += calculate_switch_lag(prev_type, curr_type)
+                cost, duration = calculate_switch_lag(prev_type, curr_type)
+                total_switch_hours += cost * duration
 
             prev_type = curr_type
 
@@ -175,9 +176,9 @@ def instability_score(plans: List[Plan]):
             previous_plan = plan
             continue
         for current_plan_task_id in plan.plan_tasks:
-            if current_plan_task_id == 0:
-                continue
             current_plan_task = plan.plan_tasks.get(current_plan_task_id)
+            if current_plan_task.is_break:
+                continue
             # check just impact on the ones after disruption cause those before are not changing anymore
             if current_plan_task.start_time < plan.disruption_time:
                 continue

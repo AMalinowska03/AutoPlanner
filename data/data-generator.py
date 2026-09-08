@@ -74,7 +74,35 @@ def process_users(df_hr, df_cog):
 
     cols_to_drop = ['technical_skill_score', 'communication_score',
                     'problem_solving_score', 'idle_time_hours', 'attendance_rate']
-    return users.drop(columns=cols_to_drop)
+    return set_training_users(users.drop(columns=cols_to_drop))
+
+
+def set_training_users(users_df: pd.DataFrame, random_state: int = 42) -> pd.DataFrame:
+    df = users_df.copy()
+    df['is_training'] = False
+
+    total_training_count = int(len(df) * 0.2)  # training users are 20% of all
+    chronotype_weights = {
+        'morning_lark': 0.3,
+        'intermediate': 0.4,
+        'night_owl': 0.3
+    }
+
+    selected_indices = []
+    for chronotype, weight in chronotype_weights.items():
+        subset_idx = df[df['chronotype'] == chronotype].index
+        target_count = int(total_training_count * weight)
+
+        take_cnt = min(target_count, len(subset_idx))
+        if take_cnt > 0:
+            sampled_idx = np.random.RandomState(random_state).choice(
+                subset_idx, size=take_cnt, replace=False
+            )
+            selected_indices.extend(sampled_idx)
+
+    df.loc[selected_indices, 'is_training'] = True
+
+    return df
 
 
 def process_and_combine_tasks(df_hr, df_tasks):

@@ -18,6 +18,7 @@ class User(Base):
     procrastination_probability = Column(Float)
     work_start_time = Column(DateTime)
     work_end_time = Column(DateTime)
+    is_training = Column(Boolean, default=False)
 
 
 class Task(Base):
@@ -31,6 +32,7 @@ class Task(Base):
     phase = Column(Enum("pretrain", "finetune", "online", "disruptions"), default="online")
     phase_order = Column(Integer)  # number of sub phase as a monthly task set available
     is_disruptor = Column(Boolean, default=False)
+    is_break = Column(Boolean, default=False)
 
 
 class Plan(Base):
