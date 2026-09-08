@@ -16,7 +16,7 @@ def prepare_data_for_training(phase: str) -> tuple[list[User], dict[int, list[Ta
         tasks_records = (
             session.query(Task)
             .filter_by(phase=phase)
-            .order_by(Task.phase_order)
+            .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
 

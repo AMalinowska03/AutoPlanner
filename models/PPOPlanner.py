@@ -4,6 +4,7 @@ import io
 import shelve
 from asyncio import all_tasks
 from datetime import datetime, time, timedelta
+import random
 from typing import Optional, List, Dict
 
 import gymnasium as gym
@@ -31,9 +32,15 @@ NUM_GLOBAL_FEATURES = 5
 # - priority
 # - task type (encoded embedding 0.0 - 1.0)
 # - presumed hourly workload
-NUM_TASK_FEATURES = 4
+# - how much task was moved if in previous plan
+NUM_TASK_FEATURES = 5
 
 TIME_MULTIPLIERS = [0.75, 1.0,  1.25, 1.5,  1.75, 2.0]
+
+PENALTY_WEIGHT_DEADLINE = 6.0
+PENALTY_WEIGHT_EFFICIENCY = 3.0
+PENALTY_WEIGHT_STABILITY = 2.0
+PENALTY_WEIGHT_HEALTH = 1.5
 
 
 class PPOPlannerEnv(gym.Env):
@@ -95,13 +102,31 @@ class PPOPlannerEnv(gym.Env):
         self.current_time_in_day = self.work_start_hour
 
     def reset(self, seed=None, options=None):
+        """
+        Method run after each episode that ends if days count exceeds 20 or there are no more tasks to plan
+        During training we stage disruption scenario randomly with 30% probability, setting previous plan to random list
+        moving current day further on and removing "completed" tasks from remaining, so we are only re-planning
+        It teaches the model stability when re-planning
+        :param seed:
+        :param options:
+        :return:
+        """
+        self.simulator.reset()
+        self.current_plan = []
+        self.previous_plan = []
+        self.current_time_in_day = self.work_start_hour
+        self.time_since_last_break = 0.0
+        self.total_break_time_today = 0.0
+        self.last_task_type = None
+        self.remaining_tasks = []
+
         # if training we switch user for each epoch
         if len(self.users_pool) > 1:
             self.user = np.random.choice(self.users_pool)
             self.simulator = UserSimulator(self.user)
             self._update_work_hours()
 
-        if self.save_to_db:
+        if self.planning_mode:
             chosen_tasks_set = self.divided_tasks[self.group_id]
             self.group_id += 1
         else:
@@ -109,15 +134,39 @@ class PPOPlannerEnv(gym.Env):
             chosen_order = np.random.choice(available_orders)
             chosen_tasks_set = copy.deepcopy(self.divided_tasks[chosen_order])
 
-        self.simulator.reset()
-        self.current_plan = {}
-        self.previous_plan = {}
-        self.current_time_in_day = self.work_start_hour
-        self.time_since_last_break = 0.0
-        self.total_break_time_today = 0.0
-        self.last_task_type = None
-        self.remaining_tasks = chosen_tasks_set[:self.max_tasks_count]
-        self.backlog = chosen_tasks_set[self.max_tasks_count:]
+            train_disruption = random.random()
+            if train_disruption < 0.3:
+                self.current_day = random.randint(2, 12)
+                self.current_time_in_day = random.uniform(self.work_start_hour, self.work_end_hour)
+                target_abs_time = self.current_day * 24.0 + self.current_time_in_day
+
+                temp_day = 0
+                temp_time = self.work_start_hour
+                tasks_to_keep = []
+
+                for task in chosen_tasks_set:
+                    task_duration = float(task.workhours)
+
+                    # overspill tasks to next day
+                    if temp_time + task_duration > self.work_end_hour:
+                        temp_day += 1
+                        temp_time = self.work_start_hour
+
+                    # save task to previous plan
+                    start_abs_time = temp_day * 24.0 + temp_time
+                    self.previous_plan[task.id] = start_abs_time  # TODO: correct plan format
+
+                    # move planning clock
+                    temp_time += task_duration
+                    end_abs_time = temp_day * 24.0 + temp_time
+
+                    # keep tasks that are after target date
+                    if end_abs_time > target_abs_time:
+                        tasks_to_keep.append(task)
+
+        if len(self.remaining_tasks) == 0:
+            self.remaining_tasks = chosen_tasks_set[:self.max_tasks_count]
+            self.backlog = chosen_tasks_set[self.max_tasks_count:]
         self.metrics_history = []
         return self._get_obs(), {}
 
@@ -150,14 +199,20 @@ class PPOPlannerEnv(gym.Env):
                 deadline_hour = self._get_deadline_in_hours(task.deadline)
                 hours_left = max(0.0, deadline_hour - current_abs_time)
                 norm_deadline = min(1.0, hours_left / total_experiment_hours)
+                if task.id in self.previous_plan:
+                    prev_start = self.previous_plan[task.id]
+                    time_diff = (prev_start - current_abs_time) / total_experiment_hours
+                else:
+                    time_diff = -1.0
                 obs.extend([
                     float(task.workhours) / self.daily_work_time,
                     prio_map.get(task.priority, 0.5),
                     current_emb,
-                    norm_deadline
+                    norm_deadline,
+                    time_diff
                 ])
             else:
-                obs.extend([0.0, 0.0, 0.0, 0.0])
+                obs.extend([0.0, 0.0, 0.0, 0.0, 0.0])
 
         return np.array(obs, dtype=np.float32)
 
@@ -182,8 +237,8 @@ class PPOPlannerEnv(gym.Env):
 
             if self.planning_mode:
                 self.current_plan.append({"is_break": True, "start_time": start_task_time, "end_time": end_task_time})
-
-            reward += self._calculate_break_reward(break_duration)
+            else:
+                reward += self._calculate_break_reward(break_duration)
 
             self.current_time_in_day += break_duration
             self.total_break_time_today += break_duration
@@ -215,25 +270,28 @@ class PPOPlannerEnv(gym.Env):
                 context_switch_lag=lag
             )
 
-            reward += self._calculate_deadline_reward(task, end_time)
-            reward += self._calculate_time_allotment_reward(task, action_time, actual_duration)
-            reward += self._calculate_disruption_reward(task, current_abs_start)
+            if self.planning_mode is False:
+                reward += self._calculate_deadline_reward(task, end_time)
+                reward += self._calculate_time_allotment_reward(task, action_time, actual_duration)
+                reward += self._calculate_disruption_reward(task, current_abs_start)
 
-            self.current_plan[task.id] = current_abs_start
             self.current_time_in_day = end_time
             self.time_since_last_break += actual_duration
             self.last_task_type = task.type
 
         if end_time > self.work_end_hour:
-            reward += self._calculate_overtime_reward(end_time)
-            reward += self._calculate_end_day_break_reward()
+            if self.planning_mode is False:
+                reward += self._calculate_overtime_reward(end_time)
+                reward += self._calculate_end_day_break_reward()
             self._advance_to_next_day()
 
         if len(self.remaining_tasks) == 0:
-            reward += 60.0
+            if self.planning_mode is False:
+                reward += 60.0
             terminated = True
         elif self.current_day >= self.total_days:
-            reward -= len(self.remaining_tasks) * 20.0
+            if self.planning_mode is False:
+                reward -= len(self.remaining_tasks) * 20.0
             terminated = True
 
         return self._get_obs(), reward, terminated, truncated, {}
@@ -250,13 +308,13 @@ class PPOPlannerEnv(gym.Env):
         break_reward = 0.0
         # penalty (beginning/end of day break, too many/few breaks)
         if self.current_time_in_day == self.work_start_hour:
-            break_reward -= break_duration * 3.0
+            break_reward -= break_duration * PENALTY_WEIGHT_EFFICIENCY
         if self.current_time_in_day + break_duration == self.work_end_hour:
-            break_reward -= break_duration * 4.0
+            break_reward -= break_duration * (PENALTY_WEIGHT_EFFICIENCY + 1)
 
         # reward (break for eating midday)
         if 11.30 < self.current_time_in_day < 14.5 and 0.25 < break_duration < 0.75:
-            break_reward += break_duration * 5.0
+            break_reward += break_duration * PENALTY_WEIGHT_EFFICIENCY
         return break_reward
 
     def _calculate_deadline_reward(self, task: Task, end_time: float):
@@ -269,9 +327,10 @@ class PPOPlannerEnv(gym.Env):
 
         if global_end_hour > deadline_hours:
             tardiness = global_end_hour - deadline_hours
-            deadline_reward -= (10.0 + tardiness * 2.0) * w_prio
+            # missing deadline is more crucial to correct than rewarding for doing task on time
+            deadline_reward -= (1.5 * PENALTY_WEIGHT_DEADLINE + tardiness * 2.0) * w_prio
         else:
-            deadline_reward += 8.0 * w_prio
+            deadline_reward += PENALTY_WEIGHT_DEADLINE * w_prio
         return deadline_reward
 
     def _calculate_time_allotment_reward(self, task:Task, action_time, actual_duration: float):
@@ -280,26 +339,38 @@ class PPOPlannerEnv(gym.Env):
         planned_duration = time_multiplier * float(task.workhours)
         # penalty (task execution time exceeded/finished early - exponential, disruption, overtime)
         planning_time_difference = actual_duration - planned_duration
+        # 15min grace period
         if -0.25 < planning_time_difference < 0.25:
-            time_reward += 5.0 / (1.0 + planning_time_difference * 4.0)
+            time_reward += 5.0 / (1.0 + abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY)
         elif planning_time_difference > 0.25:
-            time_reward -= planning_time_difference ** 2 * 6.0
-        elif planning_time_difference < -0.25:
-            time_reward -= abs(planning_time_difference) * 2.0
+            # the more time was actually needed to complete the task the more penalty exponentially
+            time_reward -= planning_time_difference ** 2 * (2 * PENALTY_WEIGHT_EFFICIENCY)
+        elif planning_time_difference < -0.25:  # finished before time
+            # we could save plan time here but giving a bit more time is always better than not giving enough
+            time_reward -= abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY
 
         return time_reward
 
     def _calculate_disruption_reward(self, task: Task, current_abs_start: float):
         disruption_reward = 0.0
+
         if task.id in self.previous_plan:
             prev_start = self.previous_plan[task.id]
-            shift = abs(current_abs_start - prev_start)  # how much was task shifted in time
-            if shift > 0.1:
-                # the closer to the event in previous plan and the bigger the shift the bigger penalty
-                time_to_event = max(0.1, prev_start - current_abs_start)
-                disruption_reward -= (shift * 4.0) / math.sqrt(time_to_event)
+            shift = abs(current_abs_start - prev_start)
+
+            if shift > 0.1:  # we dont include small shifts of a few minutes
+                time_to_event = max(0.5, prev_start - current_abs_start)
+                # if bigger the shift the less penalty grows - it's a big change anyway (logarithmic)
+                base_penalty = math.log(1.0 + shift) * PENALTY_WEIGHT_STABILITY
+
+                # the further the event was originally planned the less impact it has
+                proximity_multiplier = 1.0 / time_to_event
+
+                disruption_reward -= base_penalty * proximity_multiplier
             else:
-                disruption_reward += 2.0
+                # small reward for keeping the task unmoved
+                disruption_reward += PENALTY_WEIGHT_STABILITY
+
         return disruption_reward
 
     def _calculate_overtime_reward(self, end_time: float):
@@ -307,7 +378,7 @@ class PPOPlannerEnv(gym.Env):
         overtime_reward = 0.0
         overtime = end_time - self.work_end_hour
         if overtime > 0.0:
-            overtime_reward -= overtime ** 2.0 * 3.0
+            overtime_reward -= overtime ** 2.0 * PENALTY_WEIGHT_HEALTH
         return overtime_reward
 
     def _calculate_end_day_break_reward(self):
@@ -315,11 +386,11 @@ class PPOPlannerEnv(gym.Env):
         worked_today = max(0.1, self.current_time_in_day - self.work_start_hour)
         break_pct = self.total_break_time_today / worked_today
         if 0.10 <= break_pct <= 0.15:
-            break_reward += 3.0
+            break_reward += 2 * PENALTY_WEIGHT_HEALTH
         elif break_pct < 0.10:
-            break_reward -= 0.5
+            break_reward -= PENALTY_WEIGHT_HEALTH
         else:
-            break_reward -= 5 * break_pct
+            break_reward -= 5 * PENALTY_WEIGHT_HEALTH * (break_pct - 0.15)
         return break_reward
 
     def _get_deadline_in_hours(self, deadline):
@@ -429,17 +500,34 @@ class PPOPlanner:
             logger_kwargs=dict(output_dir="./PPOGenerated", exp_name="pretrain")
         )
         # save model to NoSQL
-        loaded_model = torch.load("./PPOGenerated/pyt_save/model.pt", map_location=device)
+        loaded_model = torch.load("./PPOGenerated/pretrain/pyt_save/model.pt", map_location=device)
         self._save_to_storage("base_pretrained", loaded_model)
 
     def finetune_user(self, user: User, finetune_tasks: dict, epochs: int = 30):
+        import shelve, io
+        base_model = None
+        with shelve.open(self.storage_path) as db:
+            if "base_pretrained" in db:
+                buffer = io.BytesIO(db["base_pretrained"])
+                base_model = torch.load(buffer, map_location=device)
+            else:
+                print("[Warning] No model 'base_pretrained'. Training from scratch.")
+
+        def pretrained_actor_critic(obs_space, act_space, **kwargs):
+            ac = core.MLPActorCritic(obs_space, act_space, **kwargs)
+
+            if base_model is not None:
+                ac.load_state_dict(base_model.state_dict())
+
+            return ac
+
         def env_fn():
             return make_wrapped_env(users_pool=[user], tasks=finetune_tasks)
 
         print(f"[PPOPlanner] Finetuning for user #{user.id}...")
         ppo(
             env_fn=env_fn,
-            actor_critic=core.MLPActorCritic,
+            actor_critic=pretrained_actor_critic,
             ac_kwargs=dict(hidden_sizes=(128, 128)),
             steps_per_epoch=2000,
             epochs=epochs,
@@ -447,7 +535,7 @@ class PPOPlanner:
             vf_lr=2e-4,
             logger_kwargs=dict(output_dir="./PPOGenerated", exp_name=f"finetune_u{user.id}")
         )
-        loaded_model = torch.load("./PPOGenerated/pyt_save/model.pt", map_location=device)
+        loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device)
         self._save_to_storage(f"user_{user.id}_finetuned", loaded_model)
 
     def plan_and_simulate_month(
