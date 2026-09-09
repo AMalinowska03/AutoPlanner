@@ -13,10 +13,11 @@ class Repository:
         self.phase_order_start = phase_order_start
 
     def create_plan_records(self, algorithm: str, planned_tasks: list, group_id: int, generation: int,
-                            disruption_time: Optional[datetime]) -> Plan:
+                            generating_time: float, disruption_time: Optional[datetime]) -> Plan:
         session = self.session_maker()
         try:
-            plan = Plan(algorithm=algorithm, group=group_id, generation=generation, disruption_time=disruption_time)
+            plan = Plan(algorithm=algorithm, group=group_id, generation=generation, disruption_time=disruption_time,
+                        generating_time=generating_time)
             session.add(plan)
             session.flush()
 

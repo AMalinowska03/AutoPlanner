@@ -1,10 +1,8 @@
 import math
-import random
 from datetime import datetime
 
-from sqlalchemy.sql.functions import user
 
-from data.DbModels import User, Task, Plan, PlanTask, Execution
+from data.DbModels import User, Task
 
 CHRONOTYPES = {
     "morning_lark": {
@@ -67,6 +65,7 @@ SKILL_REF = 0.5
 SKILL_SPEED_WEIGHT = 0.5
 ENERGY_PER_WORKHOUR = 0.05
 DEBT_THRESHOLD = 0.3
+
 
 def calculate_switch_lag(prev_task_type: str | None, current_task_type: str) -> tuple[float, float]:
     if prev_task_type is None:
@@ -132,13 +131,13 @@ class UserSimulator:
         """
         return min(1.0, max(0.0, (self.get_current_energy(time) + self.get_current_attention(time))))
 
-    def execute_task(self, task: Task, start_time: float, context_switch_lag: tuple[float, float] = (0.0, 1.0)) -> tuple[float, float, float]:
+    def execute_task(self, task: Task, start_time: float, prev_task_type: str | None = None) -> tuple[float, float, float]:
         """
         Processes energy usage and time needed for a given task at a given timestamp
         adding it toward task energy usage for the day
         :param task:
         :param start_time:
-        :param context_switch_lag: if task type changed, given time will be for adjustment, slowing down execution
+        :param prev_task_type: type of previous task to calculate lag
         :return:
         """
         dt = 0.017  # around a minute, step duration for performing task
@@ -153,7 +152,7 @@ class UserSimulator:
 
         while work_remaining > 0:
             elapsed = current_time - start_time
-            lag_cost, lag_duration = context_switch_lag
+            lag_cost, lag_duration = calculate_switch_lag(prev_task_type, task.type)
             in_switch_phase = elapsed <= lag_duration and  lag_cost > 0 and lag_duration > 0
 
             # current execution efficiency for given time

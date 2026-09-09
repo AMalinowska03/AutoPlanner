@@ -20,6 +20,8 @@ class User(Base):
     work_end_time = Column(DateTime)
     is_training = Column(Boolean, default=False)
 
+    plan_tasks = relationship("PlanTask", back_populates="user")
+
 
 class Task(Base):
     __tablename__ = 'task'
@@ -33,6 +35,8 @@ class Task(Base):
     phase_order = Column(Integer)  # number of sub phase as a monthly task set available
     is_disruptor = Column(Boolean, default=False)
     is_break = Column(Boolean, default=False)
+
+    plan_tasks = relationship("PlanTask", back_populates="task")
 
 
 class Plan(Base):
@@ -64,17 +68,17 @@ class PlanTask(Base):
 
     plan = relationship(
         "Plan",
-        back_populates="plan_task",
+        back_populates="plan_tasks",
         primaryjoin="PlanTask.plan_id == Plan.id",
     )
     task = relationship(
         "Task",
-        back_populates="plan_task",
+        back_populates="plan_tasks",
         primaryjoin="PlanTask.task_id == Task.id",
     )
     user = relationship(
         "User",
-        back_populates="plan_task",
+        back_populates="plan_tasks",
         primaryjoin="PlanTask.user_id == User.id",
     )
 
