@@ -24,7 +24,7 @@ SKILL_ATTR_MAP = {
     "analytical": {"attr_name": "analytical_skill", "embedding": 1.0},
 }
 
-SWITCH_MATRIX: dict[tuple[str, str], float] = {
+SWITCH_MATRIX: dict[tuple[str, str], tuple[float, float]] = {
     # ------------------ from: COMMUNICATION ------------------
     ("communication", "communication"): (0.0, 1.0),
     ("communication", "routine"): (0.1, 5 / 60),        # 5 min (switch to mentally easier task)
@@ -204,7 +204,7 @@ class UserSimulator:
             end_energy = self.get_current_energy(current_time)
             deficit_ratio = (DEBT_THRESHOLD - end_energy) / DEBT_THRESHOLD
 
-            self.energy_debt = min(0.4, 0.2 * deficit_ratio * (1.0 - end_energy))
+            self.energy_debt = max(0.0, min(0.4, 0.2 * deficit_ratio * (1.0 - end_energy)))
 
         self.task_energy_usage = 0
         if weekly:

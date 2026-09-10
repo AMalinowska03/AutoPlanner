@@ -326,9 +326,9 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
     """
     np.random.seed(seed)
     disruptor_records = []
-    for i in range(subphase_count):
+    for phase_no in range(subphase_count):
         base_start = pd.to_datetime(start_date)
-        sub_start = base_start + timedelta(weeks=4 * i)
+        sub_start = base_start + timedelta(weeks=4 * phase_no)
 
         # subphase gets 20 workdays to distribute deadlines
         business_days = pd.date_range(start=sub_start, periods=20, freq='B')
@@ -345,9 +345,9 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
             'creativity': ['Urgent banner revision', 'Copywriting fix']
         }
 
-        for i in range(1, count + 1):
+        for disruptor_no in range(1, count + 1):
             t_type = np.random.choice(types, p=type_probs)
-            t_name = f"[DISRUPTOR] {np.random.choice(disruptor_templates[t_type])} #{i}"
+            t_name = f"[DISRUPTOR] {np.random.choice(disruptor_templates[t_type])} #{disruptor_no}"
 
             # 5 to 60 minutes (0.08h - 1.0h)
             duration = float(np.random.choice([round((x * 5.0 / 60.0), 2) for x in range(1, 13)]))
@@ -363,7 +363,7 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
                 'priority': np.random.choice(['high', 'urgent'], p=[0.4, 0.6]),
                 'type': t_type,
                 'phase': 'disruptions',
-                'phase_order': i,
+                'phase_order': phase_no,
                 'deadline': deadline,
                 'is_disruptor': True
             })

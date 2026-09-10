@@ -1,224 +1,636 @@
-import time
 import math
+import copy
+import io
+import shelve
+import time
+import optuna
 import numpy as np
-from datetime import timedelta, datetime
-from pymoo.core.problem import ElementwiseProblem
+import random
+from datetime import datetime, timedelta
+from typing import Optional, List
+
 from pymoo.algorithms.moo.nsga3 import NSGA3
 from pymoo.optimize import minimize
 from pymoo.util.ref_dirs import get_reference_directions
+from pymoo.termination.default import DefaultMultiObjectiveTermination
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PM
+from pymoo.core.problem import Problem
+
+from data.DbHelper import Repository, get_user_work_hours, sim_time_to_datetime
+from data.DbModels import User, Task
+from simulation.UserSimulator import UserSimulator
+
+DisruptorsMap = dict[int, list[tuple[float, Task]]]
+
+TIME_MULTIPLIERS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 3.0, 3.5, 4.0]
+PENALTY_WEIGHT_DEADLINE = 6.0
+PENALTY_WEIGHT_EFFICIENCY = 3.0
+PENALTY_WEIGHT_STABILITY = 2.0
+PENALTY_WEIGHT_HEALTH = 1.5
+
+PARETO_SELECTION_WEIGHTS = np.array([
+    6.0,   # deadline
+    3.0,   # efficiency
+    2.0,   # stability
+    1.5,   # health
+])
 
 
-class TaskSchedulingProblem(ElementwiseProblem):
-    def __init__(self, tasks, user_profile, current_time_start):
+class PlanOptimizationProblem(Problem):
+    def __init__(self, tasks, previous_plan, start_date, sim_day, sim_time,
+                 time_since_break, total_break_time, last_task_type, base_simulator, work_start_hour, work_end_hour,
+                 total_days):
+
         self.tasks = tasks
         self.n_tasks = len(tasks)
-        self.user = user_profile
-        self.current_time_start = current_time_start
 
-        # Zmienne: kolejność (0-1), czas przerw (0-1.5h), mnożnik czasu (indeks 0-3)
-        super().__init__(
-            n_var=self.n_tasks * 3,
-            n_obj=3,  # f1: Deadlines, f2: Przerwy, f3: Overtime/Stabilność
-            n_ieq_constr=0,
-            xl=np.array([0.0] * self.n_tasks + [0.0] * self.n_tasks + [0] * self.n_tasks),
-            xu=np.array([1.0] * self.n_tasks + [1.5] * self.n_tasks + [3] * self.n_tasks)
-        )
+        # 3 parts: [tasks order, how much dime dedicated, break decision]
+        super().__init__(n_var=self.n_tasks * 3, n_obj=4, n_ieq_constr=1, xl=0.0, xu=1.0)
 
-    def _evaluate(self, x, out, *args, **kwargs):
-        sequence = np.argsort(x[0:self.n_tasks])
-        break_genes = x[self.n_tasks:self.n_tasks * 2]
-        time_genes = x[self.n_tasks * 2:self.n_tasks * 3]
+        self.previous_plan = previous_plan
+        self.start_date = start_date
+        self.base_sim_day = sim_day
+        self.base_sim_time = sim_time
+        self.base_time_since_break = time_since_break
+        self.base_total_break = total_break_time
+        self.base_last_task_type = last_task_type
 
-        f1_deadlines, f2_breaks, f3_overtime = 0.0, 0.0, 0.0
-        current_time = self.current_time_start
+        self.base_simulator = base_simulator
+        self.work_start_hour = work_start_hour
+        self.work_end_hour = work_end_hour
+        self.total_days = total_days
+
+    def _evaluate(self, X, out, *args, **kwargs):
+        F = np.zeros((X.shape[0], self.n_obj))
+        G = np.zeros((X.shape[0], 1))
+
+        for i in range(X.shape[0]):
+            x_order = X[i, :self.n_tasks]  # first part holds tasks order
+            x_time = X[i, self.n_tasks: 2 * self.n_tasks]  # second part holds how much each task should take
+            x_breaks = X[i, 2 * self.n_tasks:]  # third part decides if there should be a break before task
+
+            sequence = np.argsort(x_order)
+
+            time_indices = np.floor(x_time * 12).astype(int)  # we have 12 different possible time multipliers
+            time_indices = np.clip(time_indices, 0, 11)
+
+            f1, f2, f3, f4, horizon = self._simulate_timeline(sequence, time_indices, x_breaks)
+
+            F[i, 0] = f1
+            F[i, 1] = f2
+            F[i, 2] = f3
+            F[i, 3] = f4
+            G[i, 0] = horizon
+
+        out["F"] = F
+        out["G"] = G
+
+    def _simulate_timeline(self, sequence, time_indices, break_genes):
+        """
+        Creates optimization conditions and returns objective components
+        (f1_deadline, f2_efficiency, f3_disruptions, f4_health)
+        The lower the value the better the chromosome.
+        :param sequence: planned tasks in order
+        :param time_indices: what time was allocated for tasks
+        :param break_genes: whether break and what length should be added before task
+        :return:
+        """
+        simulator = copy.deepcopy(self.base_simulator)
+
+        current_day = self.base_sim_day
+        current_time = self.base_sim_time
+        time_since_break = self.base_time_since_break
+        total_break_time = self.base_total_break
+        last_task_type = self.base_last_task_type
+        max_used_day = current_day
+
+        obj_deadline, obj_eff, obj_disrupt, obj_health = 0.0, 0.0, 0.0, 0.0
 
         for idx in sequence:
             task = self.tasks[idx]
-            break_duration = break_genes[idx]
+            action_time_idx = time_indices[idx]
+            break_gene = break_genes[idx]
 
-            # Przetwarzanie przerwy
-            if break_duration > 0.15:  # Próg włączenia przerwy
-                # TUTAJ: f2_breaks += obliczona kara za przerwę
-                current_time += timedelta(hours=break_duration)
+            # BREAK: we add a break if break gene is at least 0.2
+            if break_gene >= 0.2:
+                break_duration = (5.0/60.0) + (break_gene - 0.2) / 0.8 * 0.75
+                simulator.process_break(break_duration, current_time)
 
-            # Czas trwania zadania na podstawie mnożnika
-            planned_duration = (int(np.round(time_genes[idx])) + 1) * float(task.workhours)
+                # if positive will be < 0
+                obj_eff += self._calculate_break_reward(current_time, break_duration)
 
-            # TUTAJ: Logika przenoszenia zadania na kolejny dzień jeśli przekracza work_end_time[cite: 2]
+                current_time += break_duration
+                total_break_time += break_duration
+                time_since_break = 0.0
+                last_task_type = None
+                max_used_day = max(max_used_day, current_day)
 
-            task_end_time = current_time + timedelta(hours=planned_duration)
+            # TASK
+            time_multiplier = TIME_MULTIPLIERS[action_time_idx]
+            planned_duration = float(task.workhours) * time_multiplier
 
-            # TUTAJ: f1_deadlines += kara za deadline
-            # TUTAJ: f3_overtime += kara za overtime / stability
+            from simulation.UserSimulator import calculate_switch_lag
+            lag_cost, lag_dur = calculate_switch_lag(last_task_type, task.type)
+            actual_duration = planned_duration * (1.0 + lag_cost * 0.5)
+            end_time = current_time + actual_duration
 
-            current_time = task_end_time
+            current_abs_start = current_day * 24.0 + current_time
 
-        out["F"] = [f1_deadlines, f2_breaks, f3_overtime]
+            obj_deadline += self._calculate_deadline_reward(current_day, task, end_time)
+            obj_eff += self._calculate_time_allotment_reward(task, planned_duration, actual_duration)
+            obj_disrupt += self._calculate_disruption_reward(task, current_abs_start)
+
+            current_time = end_time
+            time_since_break += actual_duration
+            last_task_type = task.type
+            max_used_day = max(max_used_day, current_day)
+
+            # end of day
+            if current_time > self.work_end_hour:
+                obj_health += self._calculate_overtime_reward(current_time)
+                obj_health += self._calculate_end_day_break_reward(total_break_time, current_time)
+
+                simulator.reset(current_time, self.work_end_hour, current_day % 5 == 0)
+                current_day += 1
+                current_time = self.work_start_hour
+                time_since_break = 0.0
+                total_break_time = 0.0
+                last_task_type = None
+                max_used_day = max(max_used_day, current_day)
+        horizon_violation = max_used_day - (self.total_days - 1)
+        return obj_deadline, obj_eff, obj_disrupt, obj_health, horizon_violation
+
+    def _calculate_break_reward(self, current_time, break_duration):
+        break_reward = 0.0
+        if current_time == self.work_start_hour:
+            break_reward += break_duration * PENALTY_WEIGHT_EFFICIENCY
+        if current_time + break_duration >= self.work_end_hour:
+            break_reward += break_duration * (PENALTY_WEIGHT_EFFICIENCY + 1)
+        if 11.30 < current_time < 14.5 and 0.25 < break_duration < 0.75:
+            break_reward -= break_duration * PENALTY_WEIGHT_EFFICIENCY  # reward minimizes objective
+        return break_reward
+
+    def _calculate_deadline_reward(self, current_day, task: Task, end_time: float):
+        deadline_reward = 0.0
+        end_date = sim_time_to_datetime(self.start_date, current_day, end_time)
+        tardiness = (end_date - task.deadline).total_seconds() / 3600.0
+
+        prio_weights = {"low": 1.0, "medium": 2.0, "high": 4.0, "urgent": 8.0}
+        w_prio = prio_weights.get(task.priority, 1.0)
+
+        if tardiness > 0:
+            # missing deadline is more crucial to correct than rewarding for doing task on time
+            deadline_reward += (1.5 * PENALTY_WEIGHT_DEADLINE + tardiness * 2.0) * w_prio
+        else:
+            deadline_reward -= PENALTY_WEIGHT_DEADLINE * w_prio
+        return deadline_reward
+
+    def _calculate_time_allotment_reward(self, task: Task, planned_duration, actual_duration: float):
+        time_reward = 0.0
+        # penalty (task execution time exceeded/finished early - exponential, disruption, overtime)
+        planning_time_difference = actual_duration - planned_duration
+        # 15min grace period
+        if -0.25 < planning_time_difference < 0.25:
+            time_reward -= 5.0 / (1.0 + abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY)
+        elif planning_time_difference > 0.25:
+            # the more time was actually needed to complete the task the more penalty exponentially
+            time_reward += planning_time_difference ** 2 * (2 * PENALTY_WEIGHT_EFFICIENCY)
+        elif planning_time_difference < -0.25:  # finished before time
+            # we could save plan time here but giving a bit more time is always better than not giving enough
+            time_reward += abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY
+
+        return time_reward
+
+    def _calculate_disruption_reward(self, task: Task, current_abs_start: float):
+        disruption_reward = 0.0
+        prev_record = next((item for item in self.previous_plan if item.get("task_id") == task.id), None)
+        if prev_record:
+            prev_start = prev_record.get("_abs_start", current_abs_start)
+            shift = abs(current_abs_start - prev_start)
+
+            if shift > 0.1:  # we don't include small shifts of a few minutes
+                time_to_event = max(0.5, prev_start - current_abs_start)
+                # if bigger the shift the less penalty grows - it's a big change anyway (logarithmic)
+                base_penalty = math.log(1.0 + shift) * PENALTY_WEIGHT_STABILITY
+
+                # the further the event was originally planned the less impact it has
+                proximity_multiplier = 1.0 / time_to_event
+
+                disruption_reward += base_penalty * proximity_multiplier
+            else:
+                # small reward for keeping the task unmoved
+                disruption_reward -= PENALTY_WEIGHT_STABILITY
+
+        return disruption_reward
+
+    def _calculate_overtime_reward(self, end_time: float):
+        # overtime penalty - the longer task takes to end the bigger penalty
+        overtime_reward = 0.0
+        overtime = end_time - self.work_end_hour
+        if overtime > 0.0:
+            overtime_reward += overtime ** 2.0 * PENALTY_WEIGHT_HEALTH
+        return overtime_reward
+
+    def _calculate_end_day_break_reward(self, total_break_time_today: float, current_time_in_day: float):
+        break_reward = 0.0
+        worked_today = max(0.1, current_time_in_day - self.work_start_hour)
+        break_pct = total_break_time_today / worked_today
+        if 0.10 <= break_pct <= 0.15:
+            break_reward -= 2 * PENALTY_WEIGHT_HEALTH
+        elif break_pct < 0.10:
+            break_reward += PENALTY_WEIGHT_HEALTH
+        else:
+            break_reward += 5 * PENALTY_WEIGHT_HEALTH * (break_pct - 0.15)
+        return break_reward
+
+    def _get_deadline_in_hours(self, deadline):
+        if deadline is None: return float(self.total_days * 24.0)
+        if isinstance(deadline, datetime):
+            base = datetime(self.start_date.year, self.start_date.month, self.start_date.day, int(self.work_start_hour))
+            return max(0.0, (deadline - base).total_seconds() / 3600.0)
+        return float(deadline)
 
 
-# ==========================================
-# CZĘŚĆ 2 & 3: KLASA NSGAPLANNER (LOGIKA)
-# ==========================================
 class NSGAPlanner:
-    def __init__(self, user, repository):
+    def __init__(self, user: Optional[User] = None):
         self.user = user
-        self.repository = repository
-        # Domyślne parametry ustalone empirycznie, podmieniane po pretrain/finetune
-        self.nsga_params = {
-            'pop_size': 100,
-            'n_gen': 200,
-            'ref_dirs': get_reference_directions("das-dennis", 3, n_partitions=12)
-        }
+        self.storage_path = "db/nsga_params.db"
+        self.repository = None
+        self.nsga_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
 
-    # --- KALIBRACJA ---
-    def evaluate_pareto_front(self, res, weights=[0.6, 0.3, 0.1]):
-        """Uśrednia wyniki frontu z naciskiem na deadliny (waga 0.6)."""
-        if res.F is None: return float('inf')
-        return np.mean(np.dot(res.F, weights))
+    def pretrain(self, all_users: List[User], pretrain_tasks: dict, n_trials: int = 30):
+        """
+        Searches for globally optimal hiperparameters based on randomly chosen task groups and users.
+        :param all_users:
+        :param pretrain_tasks:
+        :param n_trials:
+        :return:
+        """
+        print("NSGA ------ Start pretraining (Optuna)...")
+        scenarios = sample_scenarios(all_users, pretrain_tasks, 100)
+        def objective(trial):
+            # Optuna chooses evolution params
+            n_partitions = trial.suggest_int("n_partitions", 2, 6)  # pop_size (10 - 84)
+            n_gen = trial.suggest_int("n_gen", 20, 100)
+            prob_cross = trial.suggest_float("prob_cross", 0.5, 1.0)
+            eta_mut = trial.suggest_int("eta_mut", 10, 30)
 
-    def pretrain(self, all_users, tasks_by_month_dict):
-        """Uruchamia poszukiwanie optymalnych parametrów ogólnych dla wielu userów[cite: 2]."""
-        best_score = float('inf')
-        for pop in [50, 100]:
-            for gen in [100, 200]:
-                total_score = 0.0
-                eval_count = 0
-                for u in all_users:
-                    for phase_order, tasks in tasks_by_month_dict.items():
-                        alg = NSGA3(ref_dirs=self.nsga_params['ref_dirs'], pop_size=pop)
-                        prob = TaskSchedulingProblem(tasks, u, u.work_start_time)
-                        res = minimize(prob, alg, ('n_gen', gen), verbose=False)
-                        total_score += self.evaluate_pareto_front(res)
-                        eval_count += 1
+            scenario_scores = []
 
-                avg_score = total_score / max(1, eval_count)
-                if avg_score < best_score:
-                    best_score = avg_score
-                    self.nsga_params.update({'pop_size': pop, 'n_gen': gen})
-        print(f"Pretrain zakończony. Najlepsze parametry: {self.nsga_params}")
+            params = {"n_partitions": n_partitions, "n_gen": n_gen, "prob_cross": prob_cross, "eta_mut": eta_mut}
+            for user, tasks in scenarios:
+                score = self._optimization(user, tasks, params)
+                scenario_scores.append(score)
 
-    def finetune(self, user_tasks):
-        """Dostraja parametry tylko dla konkretnego użytkownika `self.user`."""
-        # Podobna logika do pretrain, ale zawężona siatka poszukiwań i tylko self.user
-        pass
+            return np.mean(scenario_scores)
 
-        # --- GENEROWANIE PLANU ---
 
-    def generate_plan(self, pending_tasks, current_sim_time):
-        """Generuje plan, mierzy czas i wyciąga najlepsze rozwiązanie faworyzujące deadliny."""
-        start_gen_time = time.time()
+        study = optuna.create_study(direction="minimize")
+        study.optimize(objective, n_trials=n_trials)
 
-        problem = TaskSchedulingProblem(pending_tasks, self.user, current_sim_time)
+        print(f"NSGA ------ Best global params: {study.best_params}")
+        self._save_to_storage("base_nsga_params", study.best_params)
+
+    def finetune(self, user: User, finetune_tasks: dict, n_trials: int = 15):
+        """
+        Dostraja hiperparametry dla konkretnego użytkownika, startując wokół bazy z Pretrain.
+        """
+        print(f"NSGA ------ Finetuning (Optuna) for user {user.id}...")
+
+        base_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
+        with shelve.open(self.storage_path) as db:
+            if "base_nsga_params" in db:
+                base_params = db["base_nsga_params"]
+
+        scenarios = sample_scenarios([user], finetune_tasks, 30)
+        def objective(trial):
+            # limit params to tuning globally found values (Fine-tuning)
+            n_partitions = trial.suggest_int("n_partitions", max(2, base_params["n_partitions"] - 1),
+                                             base_params["n_partitions"] + 1)
+            n_gen = trial.suggest_int("n_gen", max(20, base_params["n_gen"] - 20), base_params["n_gen"] + 20)
+            prob_cross = trial.suggest_float("prob_cross", max(0.5, base_params["prob_cross"] - 0.2),
+                                             min(1.0, base_params["prob_cross"] + 0.1))
+
+            # ref_dirs = get_reference_directions("das-dennis", 4, n_partitions=n_partitions)
+            # algorithm = NSGA3(
+            #     pop_size=len(ref_dirs), ref_dirs=ref_dirs, crossover=SBX(prob=prob_cross, eta=15),
+            #     mutation=PM(eta=base_params["eta_mut"])
+            # )
+            #
+            # simulator = UserSimulator(user)
+            # work_start_hour, work_end_hour = get_user_work_hours(user)
+            # problem = PlanOptimizationProblem(
+            #     tasks=sample_tasks, previous_plan=[], start_date=datetime(2027, 2, 1),
+            #     sim_day=0, sim_time=work_start_hour, time_since_break=0.0, total_break_time=0.0,
+            #     last_task_type=None, base_simulator=simulator,
+            #     work_start_hour=work_start_hour, work_end_hour=work_end_hour, total_days=20
+            # )
+            #
+            # res = minimize(problem, algorithm, termination=DefaultMultiObjectiveTermination(n_max_gen=n_gen), verbose=False)
+            # return float("inf") if res.F is None else np.min(np.sum(res.F * np.array([6.0, 3.0, 2.0, 1.0]), axis=1))
+            scenario_scores = []
+
+            params = {"n_partitions": n_partitions, "n_gen": n_gen, "prob_cross": prob_cross, "eta_mut": base_params["eta_mut"]}
+            for user, tasks in scenarios:
+                score = self._optimization(user, tasks, params)
+                scenario_scores.append(score)
+
+            return np.mean(scenario_scores)
+
+        study = optuna.create_study(direction="minimize")
+        study.optimize(objective, n_trials=n_trials)
+
+        best_params = {**study.best_params, "eta_mut": base_params["eta_mut"]}
+        self._save_to_storage(f"user_{user.id}_nsga_params", best_params)
+
+    def _optimization(self, sample_user: User, sample_tasks: list[Task],
+                      params: dict, start_date: datetime = datetime(2027, 2, 1)):
+        ref_dirs = get_reference_directions("das-dennis", 4, n_partitions=params["n_partitions"])
         algorithm = NSGA3(
-            ref_dirs=self.nsga_params['ref_dirs'],
-            pop_size=self.nsga_params['pop_size']
+            pop_size=len(ref_dirs),
+            ref_dirs=ref_dirs,
+            crossover=SBX(prob=params["prob_cross"], eta=15),
+            mutation=PM(eta=params["eta_mut"])
         )
 
-        # Algorytm nie korzysta z symulatora podczas generowania
-        res = minimize(problem, algorithm, ('n_gen', self.nsga_params['n_gen']), verbose=False)
-        generating_time = time.time() - start_gen_time
+        simulator = UserSimulator(sample_user)
+        work_start_hour, work_end_hour = get_user_work_hours(sample_user)
+        problem = PlanOptimizationProblem(
+            tasks=sample_tasks, previous_plan=[], start_date=start_date,
+            sim_day=0, sim_time=work_start_hour, time_since_break=0.0, total_break_time=0.0,
+            last_task_type=None, base_simulator=simulator,
+            work_start_hour=work_start_hour, work_end_hour=work_end_hour, total_days=20
+        )
 
-        # Wybieramy rozwiązanie z Frontu Pareto z najmniejszą karą dla f1 (Deadliny)
-        best_idx = np.argmin(res.F[:, 0])
-        best_genome = res.X[best_idx]
+        res = minimize(problem, algorithm, termination=DefaultMultiObjectiveTermination(n_max_gen=params["n_gen"]), verbose=False)
 
-        # Ostatnie zdekodowanie najlepszego genomu na konkretne obiekty i czasy (jak w _evaluate)
-        structured_plan = self._decode_genome_to_schedule(best_genome, pending_tasks, current_sim_time)
+        if res.F is None:
+            return float("inf")
 
-        return structured_plan, generating_time
+        # return lowest weighed objective sum to know if result is correct
+        weights = np.array([6.0, 3.0, 2.0, 1.0])
+        return np.min(np.sum(res.F * weights, axis=1))
 
-    def _decode_genome_to_schedule(self, genome, tasks, start_time):
-        """Zamienia genom w listę słowników `{'task_id': int, 'start_time': dt, 'end_time': dt, 'is_break': bool, ...}`"""
-        # (Implementacja odtwarzająca pętlę z _evaluate i budująca listę)
-        return []  # Zwraca gotową uporządkowaną listę
+    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int, disruptors_map: Optional[DisruptorsMap] = None,
+                                phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
+        disr_map = copy.deepcopy(disruptors_map)
+        self.repository = Repository(user, phase, phase_order, start_date)
+        work_start_hour, work_end_hour = get_user_work_hours(user)
 
-    # --- SYMULACJA I ZAPIS ---
-    def execute_and_simulate(self, monthly_tasks, group_id, phase="online"):
-        """Główna pętla wykonawcza z obsługą symulatora, przerw i zakłóceń."""
-        sim = UserSimulator(self.user)
-        current_sim_time = self.user.work_start_time
-        generation_count = 0
+        # load user params nor NSGA
+        self.nsga_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
+        with shelve.open(self.storage_path) as db:
+            if f"user_{user.id}_nsga_params" in db:
+                self.nsga_params = db[f"user_{user.id}_nsga_params"]
 
-        # Wyodrębnienie zakłóceń
-        regular_tasks = [t for t in monthly_tasks if not t.is_disruptor]
-        disruptors = [t for t in monthly_tasks if t.is_disruptor]
+        simulator = UserSimulator(user)
+        current_generation = 0
+        remaining_to_plan = copy.deepcopy(month_tasks)
+        previous_plan_state = []
 
-        pending_tasks = regular_tasks.copy()
+        sim_day = 0
+        sim_time = work_start_hour
 
-        while pending_tasks:
-            # 1. Generowanie planu (bez douczania[cite: 1, 2])
-            planned_schedule, gen_time = self.generate_plan(pending_tasks, current_sim_time)
+        disruption_occurrence_time = None
+        time_since_last_break = 0.0
+        total_break_time_today = 0.0
+        last_task_type = None
+        while remaining_to_plan and sim_day < 20:
+            print(f"NSGA ------ Planning: user {user.id} | generation: {current_generation} | start date: {start_date}")
+            current_plan, gen_time = self._generate_plan(remaining_to_plan, previous_plan_state, sim_day, sim_time,
+                                                         time_since_last_break, total_break_time_today, last_task_type,
+                                                         simulator, work_start_hour, work_end_hour, 20, start_date
+                                                         )
 
-            # 2. Zapis głównego rekordu Planu i PlanTask
-            plan_db_record = self.repository.create_plan_records(
-                algorithm="nsga",
-                planned_tasks=[t for t in planned_schedule if not t.get('is_break')],
-                group_id=group_id,
-                generation=generation_count,
-                disruption_time=None
+            # save plan to db
+            plan_record = self.repository.create_plan_records(
+                algorithm="nsga", planned_tasks=current_plan, group_id=group_id,
+                generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
             )
-            # Aktualizacja generating_time
-            plan_db_record.generating_time = gen_time
-            # Zapisanie do bazy (np. self.repository.session.commit())
 
-            # 3. Pętla wykonawcza dla wygenerowanego planu
-            for item in planned_schedule:
-                # Obsługa zdarzeń losowych (Disruptions) w trakcie dnia
-                if phase == "disruptions":
-                    for d_task in disruptors:
-                        if current_sim_time >= d_task.disruption_time and d_task not in pending_tasks:
-                            print(f"Dodano zakłócenie: {d_task.name}")
-                            pending_tasks.append(d_task)
-                            generation_count += 1
-                            # Zakończenie aktualnego zadania i przeplanowanie na nowo
+            print(f"NSGA ------ Simulating ------")
+            replan_needed = False
+
+            # go through all planned tasks until they are possible to be completed
+            while current_plan:
+                plan_item = current_plan.pop(0)
+                calendar_days_passed = sim_day + (sim_day // 5) * 2
+
+                # execute plan item
+                if plan_item.get("is_break"):
+                    simulator.process_break(duration=plan_item["duration"], time=sim_time)
+                    self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
+                    sim_time += plan_item["duration"]
+                    time_since_last_break = 0.0
+                    total_break_time_today += plan_item["duration"]
+                    last_task_type = None
+                else:
+                    task = plan_item["task"]
+                    actual_dur, end_time, energy = simulator.execute_task(task, sim_time, last_task_type)
+                    current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
+                                                            minutes=int((sim_time % 1) * 60))
+                    self.repository.save_execution_to_db(
+                        plan_record, task, current_sim_dt,
+                        current_sim_dt + timedelta(hours=actual_dur), energy
+                    )
+                    last_task_type = task.type
+                    sim_time = end_time
+                    time_since_last_break += actual_dur
+
+                #  check if disruptor is supposed to appear
+                if disr_map and sim_day in disr_map:
+                    pending_disruptors = disr_map[sim_day]
+                    if pending_disruptors and pending_disruptors[0][0] <= sim_time:
+                        disrupt_time, disruptor_task = pending_disruptors.pop(0)
+                        dh = int(disrupt_time)
+                        dm = int((disrupt_time - dh) * 60)
+                        disruption_occurrence_time = start_date + timedelta(days=calendar_days_passed, hours=dh,
+                                                                            minutes=dm)
+                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan.append(disruptor_task)
+
+                        # set to history to check instability
+                        previous_plan_state = copy.deepcopy(current_plan)
+                        replan_needed = True
+                        print(f"NSGA ------ Disruptor occurred: RE-PLANNING ------")
+                        break
+                disruption_occurrence_time = None
+
+                current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
+                                                        minutes=int((sim_time % 1) * 60))
+                # if we finish task earlier we might want to re-plan
+                # because other task might be more efficiently performed in that gap
+                if current_plan:
+                    next_item = current_plan[0]
+                    next_start_dt = next_item["start_time"]
+
+                    # time to next task
+                    gap_seconds = (next_start_dt - current_sim_dt).total_seconds()
+
+                    # re-plan if:
+                    # - there is more than one hour to next task start
+                    # - next task is in next day, and we still have over 0.5h of work day
+                    if gap_seconds > 15*60 or (
+                            next_start_dt.date() > current_sim_dt.date() and work_end_hour - sim_time > 0.5):
+                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        previous_plan_state = copy.deepcopy(current_plan)
+                        replan_needed = True
+                        print(f"NSGA ------ Have time left: RE-PLANNING ------")
+                        break
+
+                # end of day
+                if sim_time >= work_end_hour:
+                    sim_day += 1
+                    if sim_day >= 20:
+                        if current_plan:
+                            print(f"NSGA ------ End of month with tasks left ------")
+                        remaining_to_plan = []
+                        break
+                    simulator.reset(sim_time, work_end_hour, weekly=(sim_day % 5 == 0))
+                    sim_time = work_start_hour
+                    time_since_last_break = 0.0
+                    total_break_time_today = 0.0
+                    last_task_type = None
+
+                    if current_plan:  # still have tasks in plan
+                        next_item = current_plan[0]
+                        next_start_dt = next_item["start_time"]
+                        if next_start_dt.date() <= current_sim_dt.date():
+                            remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                            previous_plan_state = copy.deepcopy(current_plan)
+                            replan_needed = True
+                            print(f"NSGA ------ Tasks left from day: RE-PLANNING ------")
                             break
-                    else:
-                        continue
-                    break  # Wyjście z pętli wykonawczej, nastąpi replanowanie
 
-                # Wykonanie przerwy
-                if item.get('is_break'):
-                    duration_hrs = (item['end_time'] - item['start_time']).total_seconds() / 3600
-                    # Zapisuje nowe zadanie typu przerwa i odpowiedni PlanTask[cite: 2, 3]
-                    self.repository.save_break(
-                        break_duration=duration_hrs,
-                        plan_record=plan_db_record,
-                        start_hour_float=current_sim_time.hour + current_sim_time.minute / 60.0,
-                        current_day=current_sim_time
-                    )
-                    # Odtwarzanie energii po przerwie[cite: 1]
-                    sim.process_break(duration_hrs, current_sim_time.hour)
-                    current_sim_time = item['end_time']
-                    continue
+            # if we moved through tasks without re-planning we finish month
+            if not replan_needed:
+                remaining_to_plan = []
+                print(f"NSGA ------ Simulation END ------")
+            else:
+                current_generation += 1
 
-                # Faktyczne wykonanie zwykłego zadania w symulatorze
-                task_obj = next(t for t in pending_tasks if t.id == item['task_id'])
-                sim_start_float = current_sim_time.hour + current_sim_time.minute / 60.0
 
-                # Zwraca faktyczny czas trwania i zużytą energię[cite: 1]
-                actual_dur, end_float_time, energy_used = sim.execute_task(task_obj, sim_start_float)
+        return {
+            "total_replans": current_generation,
+            "days_used": sim_day,
+        }
 
-                sim_end_time = current_sim_time + timedelta(hours=actual_dur)
+    def _generate_plan(self, remaining_tasks, previous_plan, sim_day, sim_time,
+                       time_since_last_break, total_break_time, last_task_type, simulator,
+                       work_start_hour, work_end_hour, total_days, start_date):
+        t0 = time.time()
 
-                # Zapis faktycznego wykonania (Execution)[cite: 3]
-                self.repository.save_execution_to_db(
-                    plan_record=plan_db_record,
-                    task=task_obj,
-                    start_date=current_sim_time,
-                    end_date=sim_end_time,
-                    energy_used=energy_used
-                )
+        # Odtworzenie parametrów z Optuny
+        ref_dirs = get_reference_directions("das-dennis", 4, n_partitions=self.nsga_params["n_partitions"])
+        algorithm = NSGA3(
+            pop_size=len(ref_dirs),
+            ref_dirs=ref_dirs,
+            crossover=SBX(prob=self.nsga_params["prob_cross"], eta=15),
+            mutation=PM(eta=self.nsga_params["eta_mut"])
+        )
 
-                current_sim_time = sim_end_time
-                pending_tasks.remove(task_obj)
+        problem = PlanOptimizationProblem(
+            tasks=remaining_tasks, previous_plan=previous_plan, start_date=start_date,
+            sim_day=sim_day, sim_time=sim_time, time_since_break=time_since_last_break,
+            total_break_time=total_break_time, last_task_type=last_task_type,
+            base_simulator=simulator, work_start_hour=work_start_hour,
+            work_end_hour=work_end_hour, total_days=total_days
+        )
 
-                # Jeśli koniec dnia pracy jest za mniej niż 5 minut, przewijamy czas do jutra i replanujemy[cite: 2]
-                time_to_end = (self.user.work_end_time - current_sim_time).total_seconds() / 60
-                if 0 <= time_to_end < 5:
-                    current_sim_time = current_sim_time + timedelta(days=1)
-                    current_sim_time = current_sim_time.replace(
-                        hour=self.user.work_start_time.hour,
-                        minute=self.user.work_start_time.minute
-                    )
-                    generation_count += 1
-                    break  # Przerwij bieżący plan, wygeneruj nowy na resztę zadań
+        termination = DefaultMultiObjectiveTermination(n_max_gen=self.nsga_params["n_gen"])
+        res = minimize(problem, algorithm, termination, seed=1, verbose=False)
+
+        # choose best option from pareto front based on weights
+        if res.F is not None and len(res.F.shape) > 1 and res.F.shape[0] > 1:
+            weights = np.array(PARETO_SELECTION_WEIGHTS)
+            scalarized = np.sum(res.F * weights, axis=1)
+            best_X = res.X[np.argmin(scalarized)]
+        else:
+            best_X = res.X if len(res.X.shape) == 1 else res.X[0]
+
+        current_plan = self._decode_x_to_plan(best_X, remaining_tasks, start_date, sim_day, sim_time,
+                                              work_start_hour, work_end_hour)
+
+        generation_time = round(time.time() - t0, 4)
+        return current_plan, generation_time
+
+    def _save_to_storage(self, key: str, params: dict):
+        with shelve.open(self.storage_path) as db:
+            db[key] = params
+
+    def _decode_x_to_plan(self, X, tasks, start_date, sim_day, sim_time, work_start_hour, work_end_hour):
+        n_tasks = len(tasks)
+        x_order = X[:n_tasks]
+        x_time = X[n_tasks: 2 * n_tasks]
+        x_breaks = X[2 * n_tasks:]
+
+        sequence = np.argsort(x_order)
+        time_indices = np.clip(np.floor(x_time * 12).astype(int), 0, 11)
+
+        current_plan = []
+        current_day, current_time = sim_day, sim_time
+
+        for idx in sequence:
+            task = tasks[idx]
+
+            if x_breaks[idx] >= 0.2:
+                break_dur = (5.0/60.0) + (x_breaks[idx] - 0.2) / 0.8 * 0.75
+                cal_days = current_day + (current_day // 5) * 2
+                start_dt = start_date + timedelta(days=cal_days, hours=int(current_time),
+                                                  minutes=int((current_time % 1) * 60))
+                end_dt = start_dt + timedelta(hours=break_dur)
+
+                current_plan.append({
+                    "is_break": True, "duration": break_dur,
+                    "start_time": start_dt, "end_time": end_dt
+                })
+                current_time += break_dur
+                if current_time >= work_end_hour:  # work_end_hour
+                    current_day += 1
+                    current_time = work_start_hour  # work_start_hour
+
+            t_mult = TIME_MULTIPLIERS[time_indices[idx]]
+            actual_duration = float(task.workhours) * t_mult
+
+            cal_days = current_day + (current_day // 5) * 2
+            start_dt = start_date + timedelta(days=cal_days, hours=int(current_time),
+                                              minutes=int((current_time % 1) * 60))
+            end_dt = start_dt + timedelta(hours=actual_duration)
+
+            current_plan.append({
+                "task_id": task.id, "task": task, "duration": actual_duration,
+                "start_time": start_dt, "end_time": end_dt,
+                "_abs_start": current_day * 24.0 + current_time
+            })
+
+            current_time += actual_duration
+            if current_time >= work_end_hour:
+                current_day += 1
+                current_time = work_start_hour
+
+        return current_plan
+
+def sample_scenarios(
+    users: list[User],
+    divided_tasks: dict[int, list[Task]],
+    n_scenarios: int = 8,
+    seed: int = 42,
+):
+    rng = random.Random(seed)
+
+    pairs = [
+        (user, group_id)
+        for user in users
+        for group_id in divided_tasks.keys()
+    ]
+
+    selected = rng.sample(
+        pairs,
+        k=min(n_scenarios, len(pairs)),
+    )
+
+    return [
+        (user, divided_tasks[group_id])
+        for user, group_id in selected
+    ]

@@ -16,8 +16,11 @@ def daily_task_completion_score(planned_tasks, executed_tasks):
     """
     planned_tasks = [t for t in planned_tasks if t.task_id != 0]
     executed_tasks = [e for e in executed_tasks if e.plan_task and e.plan_task.task_id != 0]
-    if len(planned_tasks) == 0 or len(executed_tasks) == 0:
-        return 1
+    if not planned_tasks:
+        return 1.0
+
+    if not executed_tasks:
+        return 0.0
     return round(len(executed_tasks)/len(planned_tasks), 2)
 
 
@@ -177,7 +180,7 @@ def instability_score(plans: List[Plan]):
             continue
         for current_plan_task_id in plan.plan_tasks:
             current_plan_task = plan.plan_tasks.get(current_plan_task_id)
-            if current_plan_task.is_break:
+            if current_plan_task.task.is_break:
                 continue
             # check just impact on the ones after disruption cause those before are not changing anymore
             if current_plan_task.start_time < plan.disruption_time:

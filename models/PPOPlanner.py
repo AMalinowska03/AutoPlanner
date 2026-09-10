@@ -14,7 +14,7 @@ from models.PPOEnv import PPOPlannerEnv, make_wrapped_env
 from spinup.algos.pytorch.ppo.ppo import ppo, core
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+DisruptorsMap = dict[int, list[tuple[float, Task]]]
 
 class PPOPlanner:
     def __init__(self, user: Optional[User] = None):
@@ -26,7 +26,7 @@ class PPOPlanner:
         def env_fn():
             return make_wrapped_env(users_pool=all_users, tasks=pretrain_tasks)
 
-        print("[PPOPlanner] Start pretraining...")
+        print("PPO ------ Start pretraining...")
         ppo(
             env_fn=env_fn,
             actor_critic=core.MLPActorCritic,
@@ -45,11 +45,11 @@ class PPOPlanner:
         import shelve, io
         base_model = None
         with shelve.open(self.storage_path) as db:
-            if "base_pretrained" in db:
-                buffer = io.BytesIO(db["base_pretrained"])
+            if "ppo_base_pretrained" in db:
+                buffer = io.BytesIO(db["ppo_base_pretrained"])
                 base_model = torch.load(buffer, map_location=device)
             else:
-                print("[Warning] No model 'base_pretrained'. Training from scratch.")
+                print("[Warning] No model 'ppo_base_pretrained'. Training from scratch.")
 
         def pretrained_actor_critic(obs_space, act_space, **kwargs):
             ac = core.MLPActorCritic(obs_space, act_space, **kwargs)
@@ -62,7 +62,7 @@ class PPOPlanner:
         def env_fn():
             return make_wrapped_env(users_pool=[user], tasks=finetune_tasks)
 
-        print(f"[PPOPlanner] Finetuning for user #{user.id}...")
+        print(f"PPO ------ Finetuning for user #{user.id}...")
         ppo(
             env_fn=env_fn,
             actor_critic=pretrained_actor_critic,
@@ -76,8 +76,9 @@ class PPOPlanner:
         loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device)
         self._save_to_storage(f"ppo_user_{user.id}_finetuned", loaded_model)
 
-    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int, disruptors_map: dict = None,
-                                phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
+    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int,
+                                disruptors_map: Optional[DisruptorsMap] = None, phase='online',
+                                phase_order=0, start_date=datetime(2027, 1, 4)):
         """
         Simulates 1 month of work saving plan, it's re-plans and execution to db
         Manages disruptor injections with re-planning.
@@ -92,6 +93,7 @@ class PPOPlanner:
         :param phase_order: month inside phase
         :return:
         """
+        disr_map = copy.deepcopy(disruptors_map)
         self.repository = Repository(user, phase, phase_order, start_date)
         model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
@@ -163,20 +165,18 @@ class PPOPlanner:
                     time_since_last_break += actual_dur
 
                 #  check if disruptor is supposed to appear
-                if disruptors_map and sim_day in disruptors_map:
-                    pending_disruptors = disruptors_map[sim_day]
-                    # Jeśli pierwszy w kolejce disruptor miał się pojawić przed obecnym czasem symulacji
+                if disr_map and sim_day in disr_map:
+                    pending_disruptors = disr_map[sim_day]
                     if pending_disruptors and pending_disruptors[0][0] <= sim_time:
                         disrupt_time, disruptor_task = pending_disruptors.pop(0)
                         dh = int(disrupt_time)
                         dm = int((disrupt_time - dh) * 60)
                         disruption_occurrence_time = start_date + timedelta(days=calendar_days_passed, hours=dh,
                                                                             minutes=dm)
-                        # Zbieramy wszystkie zadania, które jeszcze nie wystartowały
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan.append(disruptor_task)
 
-                        # Ustawienie historii, aby nałożyć kary za zmieniane czasy
+                        # set to history to check instability
                         previous_plan_state = copy.deepcopy(raw_env.current_plan)
                         replan_needed = True
                         print(f"PPO ------ Disruptor occurred: RE-PLANNING ------")
@@ -207,7 +207,7 @@ class PPOPlanner:
                     # re-plan if:
                     # - there is more than one hour to next task start
                     # - next task is in next day, and we still have over 0.5h of work day
-                    if gap_seconds > 3600 or (
+                    if gap_seconds > 15*60 or (
                             next_start_dt.date() > current_sim_dt.date() and raw_env.work_end_hour - sim_time > 0.5):
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         previous_plan_state = copy.deepcopy(raw_env.current_plan)
@@ -244,11 +244,11 @@ class PPOPlanner:
                             print(f"PPO ------ End of month with tasks left ------")
                         remaining_to_plan = []
                         break
+                    simulator.reset(sim_time, raw_env.work_end_hour, weekly=(sim_day % 5 == 0))
                     sim_time = raw_env.work_start_hour
                     time_since_last_break = 0.0
                     total_break_time_today = 0.0
                     raw_env.last_task_type = None
-                    simulator.reset(sim_time, raw_env.work_end_hour, weekly=(sim_day % 5 == 0))
 
                     if current_plan:  # still have tasks in plan
                         next_item = current_plan[0]
@@ -289,7 +289,7 @@ class PPOPlanner:
     def _generate_plan(self, env, raw_env, ac_model, remaining_tasks, previous_plan, sim_day, sim_time,
                        time_since_last_break, total_break_time, last_task_type):
         t0 = time.time()
-        obs, _ = env.reset()
+        obs = env.reset()
 
         raw_env.current_day = sim_day
         raw_env.current_time_in_day = sim_time
@@ -310,15 +310,14 @@ class PPOPlanner:
                 obs_t = torch.as_tensor(obs, dtype=torch.float32, device=device)
                 pi = ac_model.pi._distribution(obs_t)
                 action = torch.argmax(pi.logits).item()
-            obs, _, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
+            obs, _, done, _ = env.step(action)
 
         generation_time = round(time.time() - t0, 4)
         return raw_env.current_plan, generation_time
 
     def _finetune_on_history(self, user: User, scenarios: list, epochs: int = 5):
         print(f"PPO: Finetuning after month on {len(scenarios)} performed scenarios...")
-        model_key = f"user_{user.id}_active"
+        model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
             buffer = io.BytesIO(db[model_key])
             working_model = torch.load(buffer, map_location=device)

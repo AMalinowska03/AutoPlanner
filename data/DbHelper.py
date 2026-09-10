@@ -23,6 +23,9 @@ class Repository:
 
             # planned_tasks is a list of elements like: (task_id, start_time, end_time)
             for t_data in planned_tasks:
+                if t_data.get("is_break"):
+                    # saving just tasks, breaks are saved when they are actually performed
+                    continue
                 pt = PlanTask(
                     plan_id=plan.id,
                     user_id=self.user.id,
@@ -96,3 +99,29 @@ class Repository:
             session.close()
 
 
+def get_user_work_hours(user):
+    work_start_hour = (
+        user.work_start_time.hour + user.work_start_time.minute / 60.0
+        if isinstance(user.work_start_time, datetime) else 8.0
+    )
+    work_end_hour = (
+        user.work_end_time.hour + user.work_end_time.minute / 60.0
+        if isinstance(user.work_end_time, datetime) else 16.0
+    )
+    return work_start_hour, work_end_hour
+
+
+def sim_time_to_datetime(
+        start_date: datetime,
+        sim_day: int,
+        hour_decimal: float,
+) -> datetime:
+    calendar_days = sim_day + (sim_day // 5) * 2
+
+    base_day = start_date + timedelta(days=calendar_days)
+
+    return datetime(
+        base_day.year,
+        base_day.month,
+        base_day.day,
+    ) + timedelta(hours=hour_decimal)

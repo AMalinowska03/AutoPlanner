@@ -81,6 +81,10 @@ class PlanTask(Base):
         back_populates="plan_tasks",
         primaryjoin="PlanTask.user_id == User.id",
     )
+    execution = relationship(
+        "Execution",
+        back_populates="plan_task",
+    )
 
 
 class Execution(Base):

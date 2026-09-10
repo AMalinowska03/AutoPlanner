@@ -10,6 +10,7 @@ import numpy as np
 import torch
 
 from data.DbModels import User, Task
+from data.DbHelper import get_user_work_hours, sim_time_to_datetime
 from simulation.UserSimulator import SKILL_ATTR_MAP, UserSimulator
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -88,14 +89,7 @@ class PPOPlannerEnv(gym.Env):
         self._update_work_hours()
 
     def _update_work_hours(self):
-        self.work_start_hour = (
-            self.user.work_start_time.hour + self.user.work_start_time.minute / 60.0
-            if isinstance(self.user.work_start_time, datetime) else 8.0
-        )
-        self.work_end_hour = (
-            self.user.work_end_time.hour + self.user.work_end_time.minute / 60.0
-            if isinstance(self.user.work_end_time, datetime) else 16.0
-        )
+        self.work_start_hour, self.work_end_hour = get_user_work_hours(self.user)
         self.daily_work_time = self.work_end_hour - self.work_start_hour
         self.current_time_in_day = self.work_start_hour
 
@@ -231,7 +225,9 @@ class PPOPlannerEnv(gym.Env):
             break_ratio
         ]
         current_abs_time = self.current_day * 24.0 + self.current_time_in_day
+        current_date = sim_time_to_datetime(self.start_day, self.current_day, self.current_time_in_day)
         total_experiment_hours = self.total_days * 24.0
+        total_calendar_hours = (self.total_days + 8) * 24.0
 
         for i in range(self.max_tasks_count):
             if i < len(self.remaining_tasks):
@@ -240,9 +236,8 @@ class PPOPlannerEnv(gym.Env):
                 current_task_param = SKILL_ATTR_MAP.get(task.type)
                 current_emb = current_task_param["embedding"] if current_task_param else 0.0
 
-                deadline_hour = self._get_deadline_in_hours(task.deadline)
-                hours_left = max(0.0, deadline_hour - current_abs_time)
-                norm_deadline = min(1.0, hours_left / total_experiment_hours)
+                hours_left = max(0.0, (task.deadline - current_date).total_seconds() / 3600.0)
+                norm_deadline = min(1.0, hours_left / total_calendar_hours)
                 prev_record = next((item for item in self.previous_plan if item.get("task_id") == task.id), None)
                 if prev_record:
                     prev_start = prev_record.get("_abs_start")
@@ -272,8 +267,8 @@ class PPOPlannerEnv(gym.Env):
         h = int(self.current_time_in_day)
         m = int((self.current_time_in_day - h) * 60)
         start_task_time = self.start_day + timedelta(days=calendar_days_passed, hours=h, minutes=m)
-        dh = int(self.current_time_in_day + task_duration)
-        dm = int((self.current_time_in_day + task_duration - dh) * 60)
+        dh = int(task_duration)
+        dm = int((task_duration - dh) * 60)
         end_task_time = start_task_time + timedelta(hours=dh, minutes=dm)
 
         if action_type == 0:
@@ -307,6 +302,9 @@ class PPOPlannerEnv(gym.Env):
                 time_multiplier = TIME_MULTIPLIERS[action_time % len(TIME_MULTIPLIERS)]
                 actual_duration = float(task.workhours) * time_multiplier
                 end_time = self.current_time_in_day + actual_duration
+                dh = int(actual_duration)
+                dm = int((actual_duration - dh) * 60)
+                end_task_time = start_task_time + timedelta(hours=dh, minutes=dm)
 
                 self.current_plan.append({
                     "task_id": task.id, "task": task,
@@ -346,12 +344,12 @@ class PPOPlannerEnv(gym.Env):
         return self._get_obs(), reward, terminated, truncated, {}
 
     def _advance_to_next_day(self):
+        self.simulator.reset(self.current_time_in_day, self.work_end_hour, weekly=(self.current_day % 5 == 0))
         self.current_day += 1
         self.current_time_in_day = self.work_start_hour
         self.time_since_last_break = 0.0
         self.total_break_time_today = 0.0
         self.last_task_type = None
-        self.simulator.reset(weekly=(self.current_day % 5 == 0))
 
     def _calculate_break_reward(self, break_duration: float):
         break_reward = 0.0
@@ -368,14 +366,13 @@ class PPOPlannerEnv(gym.Env):
 
     def _calculate_deadline_reward(self, task: Task, end_time: float):
         deadline_reward = 0.0
-        global_end_hour = self.current_day * 24.0 + end_time
-        deadline_hours = self._get_deadline_in_hours(task.deadline)
+        end_date = sim_time_to_datetime(self.start_day, self.current_day, end_time)
+        tardiness = (end_date - task.deadline).total_seconds() / 3600.0
 
         prio_weights = {"low": 1.0, "medium": 2.0, "high": 4.0, "urgent": 8.0}
         w_prio = prio_weights.get(task.priority, 1.0)
 
-        if global_end_hour > deadline_hours:
-            tardiness = global_end_hour - deadline_hours
+        if tardiness > 0:
             # missing deadline is more crucial to correct than rewarding for doing task on time
             deadline_reward -= (1.5 * PENALTY_WEIGHT_DEADLINE + tardiness * 2.0) * w_prio
         else:
