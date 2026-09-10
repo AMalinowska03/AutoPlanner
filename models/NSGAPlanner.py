@@ -199,7 +199,7 @@ class PlanOptimizationProblem(Problem):
             time_reward -= 5.0 / (1.0 + abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY)
         elif planning_time_difference > 0.25:
             # the more time was actually needed to complete the task the more penalty exponentially
-            time_reward += planning_time_difference ** 2 * (2 * PENALTY_WEIGHT_EFFICIENCY)
+            time_reward += abs(planning_time_difference) * (2 * PENALTY_WEIGHT_EFFICIENCY)
         elif planning_time_difference < -0.25:  # finished before time
             # we could save plan time here but giving a bit more time is always better than not giving enough
             time_reward += abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY
@@ -233,7 +233,7 @@ class PlanOptimizationProblem(Problem):
         overtime_reward = 0.0
         overtime = end_time - self.work_end_hour
         if overtime > 0.0:
-            overtime_reward += overtime ** 2.0 * PENALTY_WEIGHT_HEALTH
+            overtime_reward += overtime * PENALTY_WEIGHT_HEALTH
         return overtime_reward
 
     def _calculate_end_day_break_reward(self, total_break_time_today: float, current_time_in_day: float):

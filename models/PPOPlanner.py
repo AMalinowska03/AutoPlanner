@@ -1,5 +1,6 @@
 import copy
 import io
+import os
 import shelve
 from datetime import datetime, timedelta
 import time
@@ -20,6 +21,7 @@ class PPOPlanner:
     def __init__(self, user: Optional[User] = None):
         self.user = user
         self.storage_path = "db/models_store.db"
+        os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
         self.repository = None
 
     def pretrain(self, all_users: List[User], pretrain_tasks: dict, epochs: int = 150):
@@ -35,10 +37,11 @@ class PPOPlanner:
             epochs=epochs,
             pi_lr=3e-4,
             vf_lr=1e-3,
-            logger_kwargs=dict(output_dir="./PPOGenerated", exp_name="pretrain")
+            target_kl=0.015,
+            logger_kwargs=dict(output_dir="./PPOGenerated/pretrain", exp_name="pretrain")
         )
         # save model to NoSQL
-        loaded_model = torch.load("./PPOGenerated/pretrain/pyt_save/model.pt", map_location=device)
+        loaded_model = torch.load("./PPOGenerated/pretrain/pyt_save/model.pt", map_location=device, weights_only=False)
         self._save_to_storage("ppo_base_pretrained", loaded_model)
 
     def finetune_user(self, user: User, finetune_tasks: dict, epochs: int = 30):
@@ -47,7 +50,7 @@ class PPOPlanner:
         with shelve.open(self.storage_path) as db:
             if "ppo_base_pretrained" in db:
                 buffer = io.BytesIO(db["ppo_base_pretrained"])
-                base_model = torch.load(buffer, map_location=device)
+                base_model = torch.load(buffer, map_location=device, weights_only=False)
             else:
                 print("[Warning] No model 'ppo_base_pretrained'. Training from scratch.")
 
@@ -71,9 +74,9 @@ class PPOPlanner:
             epochs=epochs,
             pi_lr=5e-5,
             vf_lr=2e-4,
-            logger_kwargs=dict(output_dir="./PPOGenerated", exp_name=f"finetune_u{user.id}")
+            logger_kwargs=dict(output_dir="./PPOGenerated/finetune_u{user.id}", exp_name=f"finetune_u{user.id}")
         )
-        loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device)
+        loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device, weights_only=False)
         self._save_to_storage(f"ppo_user_{user.id}_finetuned", loaded_model)
 
     def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int,
@@ -103,7 +106,7 @@ class PPOPlanner:
                     raise ValueError(f"No finetuned model for user {user.id}. Run finetuning first.")
                 db[model_key] = db[base_key]
             buffer = io.BytesIO(db[model_key])
-            ac_model = torch.load(buffer, map_location=device)
+            ac_model = torch.load(buffer, map_location=device, weights_only=False)
             ac_model.eval()
 
         training_scenarios = []
@@ -325,12 +328,56 @@ class PPOPlanner:
         generation_time = round(time.time() - t0, 4)
         return raw_env.current_plan, generation_time
 
+    def print_plan_after_train(self, user, tasks):
+        model_key = f"ppo_base_pretrained"
+        with shelve.open(self.storage_path) as db:
+            buffer = io.BytesIO(db[model_key])
+            ac_model = torch.load(buffer, map_location=device, weights_only=False)
+            ac_model.eval()
+        start_date = datetime(year=2027, month=2, day=1)
+        raw_env = PPOPlannerEnv(users_pool=[user], divided_tasks={0: []}, max_tasks_count=50, planning_mode=True,
+                                start_day=start_date)
+        env = make_wrapped_env(raw_env=raw_env)
+
+        remaining_to_plan = copy.deepcopy(tasks)
+        print("lista zadań podana")
+        for task in remaining_to_plan:
+            print(f"---- [ZADANIE ID: {task.id:3}] | Prio: {task.priority:6} | Typ: {task.type:10} | "
+                  f"Deadline: {task.deadline} | "
+                  f"(Czas: {task.workhours:.2f}h)")
+        previous_plan_state = []
+
+        sim_day = 0
+        sim_time = raw_env.work_start_hour
+
+        time_since_last_break = 0.0
+        total_break_time_today = 0.0
+        current_plan, gen_time = self._generate_plan(
+                env, raw_env, ac_model, remaining_to_plan, previous_plan_state, sim_day, sim_time,
+                time_since_last_break, total_break_time_today, raw_env.last_task_type
+            )
+        print(f"\n================ WYGENEROWANY PLAN ================")
+        for item in current_plan:
+            if item.get("is_break"):
+                print(
+                    f"☕ [PRZERWA] {item['start_time'].strftime('%H:%M')} - {item['end_time'].strftime('%H:%M')} (Czas: {item['duration']:.2f}h)")
+            else:
+                task = item["task"]
+                dl_str = task.deadline.strftime('%Y-%m-%d %H:%M') if task.deadline else "Brak"
+                print(f"📋 [ZADANIE ID: {task.id:3}] | Prio: {task.priority:6} | Typ: {task.type:10} | "
+                      f"Deadline: {dl_str} | "
+                      f"Zaplanowano: {item['start_time'].strftime('%d-%m %H:%M')} -> {item['end_time'].strftime('%d-%m %H:%M')} "
+                      f"(Czas: {item['duration']:.2f}h)")
+        print("===================================================\n")
+
+
+
     def _finetune_on_history(self, user: User, scenarios: list, start_day: datetime, epochs: int = 5):
         print(f"PPO: Finetuning after month on {len(scenarios)} performed scenarios...")
         model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
             buffer = io.BytesIO(db[model_key])
-            working_model = torch.load(buffer, map_location=device)
+            working_model = torch.load(buffer, map_location=device, weights_only=False)
 
         def pretrained_actor_critic(obs_space, act_space, **kwargs):
             ac = core.MLPActorCritic(obs_space, act_space, **kwargs)
@@ -350,11 +397,11 @@ class PPOPlanner:
             epochs=epochs,
             pi_lr=1e-5,  # low learning rate to just adjust the model and not change drastically
             vf_lr=5e-5,
-            logger_kwargs=dict(output_dir="./PPOGenerated", exp_name=f"{model_key}")
+            logger_kwargs=dict(output_dir=f"./PPOGenerated/{model_key}", exp_name=f"{model_key}")
         )
 
         # update the active model
-        loaded_model = torch.load(f"./PPOGenerated/{model_key}/pyt_save/model.pt", map_location=device)
+        loaded_model = torch.load(f"./PPOGenerated/{model_key}/pyt_save/model.pt", map_location=device, weights_only=False)
         self._save_to_storage(model_key, loaded_model)
         print(f"PPO: ------ Finetune END ------")
 

@@ -219,3 +219,5 @@ __marimo__/
 
 /models/testfile.py
 /db/*
+/experiments/db/*
+/experiments/PPOGenerated/*

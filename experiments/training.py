@@ -34,9 +34,10 @@ def run_ppo_training(phase: str, users: list[User], tasks: dict[int, list[Task]]
     planner = PPOPlanner()
     if phase == 'pretrain':
         planner.pretrain(users, tasks)
-    elif phase == 'finetune':
-        for user in users:
-            planner.finetune_user(user, tasks)
+        planner.print_plan_after_train(users[0], tasks[0])
+    # elif phase == 'finetune':
+    #     for user in users:
+    #         planner.finetune_user(user, tasks)
 
     print(f"------------------------- PPO {phase}: END -------------------------")
 
@@ -48,7 +49,7 @@ def choose_nsga_params(phase: str, users: list[User], tasks: dict[int, list[Task
         planner.pretrain(users, tasks)
     elif phase == 'finetune':
         for user in users:
-            planner.finetune(user)
+            planner.finetune(user, tasks)
 
     print(f"------------------------- NSGA {phase}: END -------------------------")
 
@@ -57,4 +58,4 @@ if __name__ == '__main__':
     for phase in ('pretrain', 'finetune'):
         users, tasks = prepare_data_for_training(phase)
         run_ppo_training(phase, users, tasks)
-        choose_nsga_params(phase, users, tasks)
+        # choose_nsga_params(phase, users, tasks)
