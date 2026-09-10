@@ -309,6 +309,7 @@ def generate_deadlines_for_phase(
         df['phase'] = phase
         df['deadline'] = deadlines
         df['is_disruptor'] = False
+        df['is_break'] = False
         full_df.append(df)
 
     return full_df, next_start_date
@@ -320,7 +321,6 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
     :param subphase_count: count of subphases in disruptors experiment part
     :param count: number of tasks to generate
     :param start_date: deadline start date
-    :param end_date: deadline end date
     :param seed: random seed
     :return:
     """
@@ -356,6 +356,7 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
             hour = np.random.choice(range(9, 17))
             minute = np.random.choice([0, 15, 30, 45])
             deadline = pd.Timestamp(day).replace(hour=hour, minute=minute, second=0)
+            injection_time = deadline - timedelta(minutes=int(np.random.choice([30, 45, 60, 90, 120])))
 
             disruptor_records.append({
                 'name': t_name,
@@ -365,7 +366,9 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
                 'phase': 'disruptions',
                 'phase_order': phase_no,
                 'deadline': deadline,
-                'is_disruptor': True
+                'is_disruptor': True,
+                'is_break': False,
+                'injection_time': injection_time
             })
 
     return pd.DataFrame(disruptor_records)
@@ -378,7 +381,7 @@ def divide_tasks_to_phases(
         target_base_task_count: int = 100
 ) -> Tuple[List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame]]:
     """
-    Divides task pool to experiment phases: pretrain (60%), finetune (10%), phase1 (20%), phase2 (10%)
+    Divides task pool to experiment phases: pretrain (60%), finetune (20%), phase1 (10%), phase2 (10%)
     Each phase is then divided into sub phases that collectively take between 90-120 workhours
     keeping priority distribution and labeling phase_order to ake experiment organization easier
 

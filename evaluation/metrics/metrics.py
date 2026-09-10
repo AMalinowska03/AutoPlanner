@@ -46,7 +46,7 @@ def task_execution_delay_score(executed_tasks: List[Execution]):
     priority_weighed_delays = 0.0
     weight_sum = 0.0
     for execution in executed_tasks:
-        if execution.plan_task.task.is_break:
+        if execution.plan_task.task.is_break or execution.plan_task.task.deadline is None:
             continue
         task = execution.plan_task.task
         delay = (execution.end_time - task.deadline).total_seconds() / 3600.0
@@ -66,7 +66,8 @@ def get_task_difficulty(task, user: User) -> float:
 
 def get_expected_attention(chronotype: str, hour_decimal: float) -> float:
     peak = CHRONOTYPES[chronotype]["peak_attention_factor"]
-    return 0.7 + 0.3 * math.sin(2 * math.pi * (hour_decimal - peak) / 24)
+    attention = 0.15 * math.cos(2 * math.pi * (hour_decimal - peak) / 24)
+    return (attention + 0.15) / 0.3
 
 
 def energy_distribution_score(planned_tasks: List[PlanTask]) -> float:
@@ -92,10 +93,8 @@ def energy_distribution_score(planned_tasks: List[PlanTask]) -> float:
         mid_time = pt.start_time + (pt.end_time - pt.start_time) / 2
         decimal_hour = mid_time.hour + mid_time.minute / 60.0 + mid_time.second / 3600.0
 
-        # estimated attention at given time [0.4, 1.0]
-        attention = get_expected_attention(user.chronotype, decimal_hour)
-        # normalization to [0, 1]
-        norm_attention = (attention - 0.4) / 0.6
+        # normalized attention
+        norm_attention = get_expected_attention(user.chronotype, decimal_hour)
 
         difficulty = get_task_difficulty(task, user)
 
@@ -170,6 +169,7 @@ def instability_score(plans: List[Plan]):
     :param plans: plans of same group
     :return:
     """
+    plans = sorted(plans, key=lambda p: p.generation)
     previous_plan = None
     distance_factor = 0.3
     disruption_impact = 0.0
@@ -194,6 +194,7 @@ def instability_score(plans: List[Plan]):
                         (abs(old - new).total_seconds()/3600.0)/(max(0.0, (old - plan.disruption_time).total_seconds()) / 3600.0 + 1.0)**distance_factor
                 )
                 tasks_count += 1
+        previous_plan = plan
     if tasks_count == 0:
         return 0.0
     return round(disruption_impact/tasks_count, 4)

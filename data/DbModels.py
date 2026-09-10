@@ -34,6 +34,7 @@ class Task(Base):
     phase = Column(Enum("pretrain", "finetune", "online", "disruptions"), default="online")
     phase_order = Column(Integer)  # number of sub phase as a monthly task set available
     is_disruptor = Column(Boolean, default=False)
+    injection_time = Column(DateTime, nullable=True)  # by that time disruptor is supposed to be added to plan
     is_break = Column(Boolean, default=False)
 
     plan_tasks = relationship("PlanTask", back_populates="task")
@@ -47,6 +48,9 @@ class Plan(Base):
     generation = Column(Integer)  # for same month and user, increased with each needed re-plan
     generating_time = Column(Float)  # how long this plan version was generated for
     disruption_time = Column(DateTime)  # how long this plan version was generated for
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)  # how long this plan version was generated for
+    phase = Column(Enum("online", "disruptions"), nullable=False)  # how long this plan version was generated for
+    phase_order = Column(Integer, nullable=False)  # how long this plan version was generated for
 
 
     plan_tasks = relationship(

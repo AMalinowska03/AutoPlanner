@@ -44,7 +44,6 @@ class PPOPlannerEnv(gym.Env):
             users_pool: List[User],
             divided_tasks: dict,
             save_to_db: bool = False,
-            group_id: int = 0,
             max_tasks_count=50,
             start_day: datetime = datetime(2027, 2, 1),
             planning_mode: bool = False,
@@ -84,7 +83,6 @@ class PPOPlannerEnv(gym.Env):
         self.metrics_history = []
         self.plan_record = None
         self.total_days = 20  # 4 weeks * 5 days for experiment
-        self.group_id = group_id
         self.current_time_in_day = None
         self._update_work_hours()
 
@@ -105,6 +103,7 @@ class PPOPlannerEnv(gym.Env):
         """
         self.current_plan = []
         self.previous_plan = []
+        self.current_day = 0
         self.current_time_in_day = self.work_start_hour
         self.time_since_last_break = 0.0
         self.total_break_time_today = 0.0
@@ -114,13 +113,11 @@ class PPOPlannerEnv(gym.Env):
         # if training we switch user for each epoch
         if len(self.users_pool) > 1:
             self.user = np.random.choice(self.users_pool)
-            self.simulator = UserSimulator(self.user)
-            self._update_work_hours()
+        self.simulator = UserSimulator(self.user)
+        self._update_work_hours()
 
         if self.planning_mode:
-            chosen_tasks_set = self.divided_tasks[self.group_id]
-            self.group_id += 1
-            self.simulator.reset(self.work_start_hour, self.work_end_hour, self.current_day % 5 == 0)
+            chosen_tasks_set = []  # we set it outside in generate plan
         elif self.training_on_history and self.historical_scenarios:
             scenario = random.choice(self.historical_scenarios)
 
@@ -131,6 +128,8 @@ class PPOPlannerEnv(gym.Env):
             self.total_break_time_today = scenario["total_break_time"]
             self.last_task_type = scenario["last_task_type"]
             self.simulator.task_energy_usage = scenario["task_energy_usage"]
+            self.simulator.energy_debt = scenario["energy_debt"]
+            self.simulator.start_energy = scenario["start_energy"]
 
             chosen_tasks_set = copy.deepcopy(scenario["remaining_tasks"])
 
@@ -156,7 +155,7 @@ class PPOPlannerEnv(gym.Env):
                     if temp_time >= 12.0 and not had_break:
                         b_duration = 0.5
                         if temp_time + b_duration <= self.work_end_hour:
-                            calendar_days_passed = self.current_day + (self.current_day // 5) * 2
+                            calendar_days_passed = temp_day + (temp_day // 5) * 2
                             b_start = self.start_day + timedelta(days=calendar_days_passed, hours=int(temp_time),
                                                                  minutes=int((temp_time % 1) * 60))
                             b_end = b_start + timedelta(hours=int(b_duration), minutes=int((b_duration % 1) * 60))
@@ -177,14 +176,14 @@ class PPOPlannerEnv(gym.Env):
                         had_break = False
 
                     # save task to previous plan
-                    cal_days = temp_day if temp_day <= 5 else temp_day + 2 if temp_day <= 10 else temp_day + 4 if temp_day <= 15 else temp_day + 6
-                    t_start = self.start_day + timedelta(days=cal_days, hours=int(temp_time),
+                    calendar_days_passed = temp_day + (temp_day // 5) * 2
+                    t_start = self.start_day + timedelta(days=calendar_days_passed, hours=int(temp_time),
                                                          minutes=int((temp_time % 1) * 60))
                     start_abs_time = temp_day * 24.0 + temp_time
 
                     # move planning clock
                     temp_time += task_duration
-                    t_end = self.start_day + timedelta(days=cal_days, hours=int(temp_time),
+                    t_end = self.start_day + timedelta(days=calendar_days_passed, hours=int(temp_time),
                                                        minutes=int((temp_time % 1) * 60))
                     end_abs_time = temp_day * 24.0 + temp_time
                     self.previous_plan.append({
@@ -199,8 +198,6 @@ class PPOPlannerEnv(gym.Env):
                         tasks_to_keep.append(task)
                 self.remaining_tasks = tasks_to_keep[:self.max_tasks_count]
                 self.backlog = tasks_to_keep[self.max_tasks_count:]
-
-            self.simulator.reset(self.work_start_hour, self.work_end_hour, self.current_day % 5 == 0)
 
         if len(self.remaining_tasks) == 0:
             self.remaining_tasks = chosen_tasks_set[:self.max_tasks_count]
@@ -221,7 +218,7 @@ class PPOPlannerEnv(gym.Env):
             norm_day,
             norm_hour,
             last_type_num,
-            self.time_since_last_break / 4.0,  # why
+            min(1.0, self.time_since_last_break / 4.0),
             break_ratio
         ]
         current_abs_time = self.current_day * 24.0 + self.current_time_in_day
@@ -236,8 +233,11 @@ class PPOPlannerEnv(gym.Env):
                 current_task_param = SKILL_ATTR_MAP.get(task.type)
                 current_emb = current_task_param["embedding"] if current_task_param else 0.0
 
-                hours_left = max(0.0, (task.deadline - current_date).total_seconds() / 3600.0)
-                norm_deadline = min(1.0, hours_left / total_calendar_hours)
+                if task.deadline is None:
+                    norm_deadline = 1.0
+                else:
+                    hours_left = max(0.0, (task.deadline - current_date).total_seconds() / 3600.0)
+                    norm_deadline = min(1.0, hours_left / total_calendar_hours)
                 prev_record = next((item for item in self.previous_plan if item.get("task_id") == task.id), None)
                 if prev_record:
                     prev_start = prev_record.get("_abs_start")
@@ -273,7 +273,8 @@ class PPOPlannerEnv(gym.Env):
 
         if action_type == 0:
             break_duration = task_duration
-            self.simulator.process_break(break_duration, self.current_time_in_day)
+            if not self.planning_mode:
+                self.simulator.process_break(break_duration, self.current_time_in_day)
 
             if self.planning_mode:
                 self.current_plan.append({"is_break": True, "start_time": start_task_time,
@@ -326,7 +327,7 @@ class PPOPlannerEnv(gym.Env):
             self.time_since_last_break += actual_duration
             self.last_task_type = task.type
 
-        if end_time > self.work_end_hour:
+        if end_time >= self.work_end_hour:
             if self.planning_mode is False:
                 reward += self._calculate_overtime_reward(end_time)
                 reward += self._calculate_end_day_break_reward()
@@ -344,7 +345,8 @@ class PPOPlannerEnv(gym.Env):
         return self._get_obs(), reward, terminated, truncated, {}
 
     def _advance_to_next_day(self):
-        self.simulator.reset(self.current_time_in_day, self.work_end_hour, weekly=(self.current_day % 5 == 0))
+        if not self.planning_mode:
+            self.simulator.reset(self.current_time_in_day, self.work_end_hour, weekly=((self.current_day+1) % 5 == 0))
         self.current_day += 1
         self.current_time_in_day = self.work_start_hour
         self.time_since_last_break = 0.0
@@ -439,32 +441,6 @@ class PPOPlannerEnv(gym.Env):
             break_reward -= 5 * PENALTY_WEIGHT_HEALTH * (break_pct - 0.15)
         return break_reward
 
-    def _get_deadline_in_hours(self, deadline):
-        """
-        Recalculates deadline time to amount of hours since month start
-        :param deadline:
-        :return:
-        """
-        if deadline is None:
-            return float(self.total_days * 24.0)
-
-        if isinstance(deadline, datetime):
-            if isinstance(self.start_day, datetime):
-                start = self.start_day
-                base_datetime = datetime(start.year, start.month, start.day, int(self.work_start_hour))
-            else:
-                base_datetime = datetime(deadline.year, deadline.month, deadline.day, int(self.work_start_hour))
-
-            diff_seconds = (deadline - base_datetime).total_seconds()
-            return max(0.0, diff_seconds / 3600.0)
-
-        if isinstance(deadline, (int, float)):
-            if deadline <= self.total_days:
-                return float(deadline * 24.0)
-            return float(deadline)
-
-        return float(self.total_days * 24.0)
-
 
 class FlattenMultiDiscreteActionWrapper(gym.ActionWrapper):
     def __init__(self, env: gym.Env, num_time_bins: int = 12):
@@ -508,7 +484,6 @@ def make_wrapped_env(
         users_pool=None,
         tasks=None,
         save_to_db: bool = False,
-        group_id: int = 0,
         start_day: datetime = datetime(year=2027, day=1, month=2),
         raw_env=None
 ):
@@ -517,7 +492,7 @@ def make_wrapped_env(
     else:
         if users_pool is None or tasks is None:
             raise ValueError("Both users_pool and tasks must be provided")
-        env = PPOPlannerEnv(users_pool, tasks, save_to_db, group_id, start_day=start_day, max_tasks_count=50)
+        env = PPOPlannerEnv(users_pool, tasks, save_to_db, start_day=start_day, max_tasks_count=50)
     env = FlattenMultiDiscreteActionWrapper(env, num_time_bins=12)
     env = GymnasiumToGymWrapper(env)
     return env

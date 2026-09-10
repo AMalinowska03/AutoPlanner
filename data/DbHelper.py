@@ -4,6 +4,9 @@ from typing import Optional
 from data.DbModels import PlanTask, Execution, Task, User, Plan
 from data.database import SessionLocal
 
+DisruptorsMap = dict[int, list[tuple[float, Task]]]
+
+
 class Repository:
     def __init__(self, user: User, phase, phase_order, phase_order_start):
         self.session_maker = SessionLocal
@@ -17,7 +20,8 @@ class Repository:
         session = self.session_maker()
         try:
             plan = Plan(algorithm=algorithm, group=group_id, generation=generation, disruption_time=disruption_time,
-                        generating_time=generating_time)
+                        generating_time=generating_time, user_id=self.user.id, phase=self.phase,
+                        phase_order=self.phase_order)
             session.add(plan)
             session.flush()
 
@@ -38,6 +42,7 @@ class Repository:
             return plan
         except Exception as e:
             session.rollback()
+            raise e
         finally:
             session.close()
 
@@ -61,6 +66,7 @@ class Repository:
             session.commit()
         except Exception as e:
             session.rollback()
+            raise e
         finally:
             session.close()
 
@@ -72,6 +78,7 @@ class Repository:
             session.commit()
         except Exception as e:
             session.rollback()
+            raise e
         finally:
             session.close()
 
@@ -95,6 +102,27 @@ class Repository:
                 session.commit()
         except Exception as e:
             session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    def get_disruptor_tasks(self, phase_order: int) -> list[Task]:
+        session = self.session_maker()
+
+        try:
+            tasks = (
+                session.query(Task)
+                .filter(
+                    Task.phase == "disruptions",
+                    Task.phase_order == phase_order,
+                    Task.is_disruptor.is_(True)
+                )
+                .order_by(Task.injection_time)
+                .all()
+            )
+            for task in tasks:
+                session.expunge(task)
+            return tasks
         finally:
             session.close()
 
@@ -125,3 +153,48 @@ def sim_time_to_datetime(
         base_day.month,
         base_day.day,
     ) + timedelta(hours=hour_decimal)
+
+
+
+def build_disruptors_map(disruptor_tasks: list[Task], start_date: datetime) -> DisruptorsMap:
+    disruptions_map = {}
+    start_day = start_date.date()
+
+    for task in disruptor_tasks:
+        injection = task.injection_time
+
+        if injection is None:
+            continue
+
+        injection_date = injection.date()
+
+        calendar_days = (injection_date - start_day).days
+
+        if calendar_days < 0:
+            continue
+
+        weeks = calendar_days // 7
+        weekday = injection_date.weekday()
+
+        if weekday >= 5:
+            continue
+
+        sim_day = weeks * 5 + weekday
+        if not 0 <= sim_day < 20:
+            continue
+
+        injection_hour = (
+            injection.hour
+            + injection.minute / 60.0
+            + injection.second / 3600.0
+        )
+
+        disruptions_map.setdefault(sim_day, []).append((injection_hour, task))
+
+    # important because planners inspect [0]
+    for day in disruptions_map:
+        disruptions_map[day].sort(
+            key=lambda item: item[0]
+        )
+
+    return disruptions_map

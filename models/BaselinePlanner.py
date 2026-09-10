@@ -24,7 +24,6 @@ class BaselinePlanner:
         simulator = UserSimulator(self.user)
         current_generation = 0
         remaining_to_plan = copy.deepcopy(month_tasks)
-        previous_plan_state = []
 
         sim_day = 0
         sim_time = self.work_start_hour
@@ -78,17 +77,21 @@ class BaselinePlanner:
                 #  check if disruptor is supposed to appear
                 if disr_map and sim_day in disr_map:
                     pending_disruptors = disr_map[sim_day]
-                    if pending_disruptors and pending_disruptors[0][0] <= sim_time:
+                    disruptors_appeared = []
+                    while pending_disruptors and pending_disruptors[0][0] <= sim_time:
                         disrupt_time, disruptor_task = pending_disruptors.pop(0)
-                        dh = int(disrupt_time)
-                        dm = int((disrupt_time - dh) * 60)
+                        disruptors_appeared.append((disrupt_time, disruptor_task))
+
+                    if disruptors_appeared:
+                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
+                        first_disruption_time = min(disrupt_time for disrupt_time, _ in disruptors_appeared)
+                        dh = int(first_disruption_time)
+                        dm = int((first_disruption_time - dh) * 60)
                         disruption_occurrence_time = start_date + timedelta(days=calendar_days_passed, hours=dh,
                                                                             minutes=dm)
-                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
-                        remaining_to_plan.append(disruptor_task)
-
-                        # set to history to check instability
                         previous_plan_state = copy.deepcopy(current_plan)
+                        # set to history to check instability
                         replan_needed = True
                         print(f"Base ------ Disruptor occurred: RE-PLANNING ------")
                         break
@@ -96,22 +99,15 @@ class BaselinePlanner:
 
                 current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                         minutes=int((sim_time % 1) * 60))
-                # if we finish task earlier we might want to re-plan
-                # because other task might be more efficiently performed in that gap
+
+                # if we finish tasks for the day earlier we might want to re-plan to not waste work day
                 if current_plan:
                     next_item = current_plan[0]
                     next_start_dt = next_item["start_time"]
 
-                    # time to next task
-                    gap_seconds = (next_start_dt - current_sim_dt).total_seconds()
-
-                    # re-plan if:
-                    # - there is more than one hour to next task start
-                    # - next task is in next day, and we still have over 0.5h of work day
-                    if gap_seconds > 15*60 or (
-                            next_start_dt.date() > current_sim_dt.date() and self.work_end_hour - sim_time > 0.5):
+                    # re-plan if next task is in next day, and we still have over 0.5h of work day
+                    if next_start_dt.date() > current_sim_dt.date() and self.work_end_hour - sim_time >= 0.5:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
-                        previous_plan_state = copy.deepcopy(current_plan)
                         replan_needed = True
                         print(f"Base ------ Have time left: RE-PLANNING ------")
                         break

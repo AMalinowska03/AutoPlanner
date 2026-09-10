@@ -108,7 +108,8 @@ class PPOPlanner:
 
         training_scenarios = []
         # environment used only to plan, not simulate
-        raw_env = PPOPlannerEnv(users_pool=[user], divided_tasks={0: []}, max_tasks_count=50, planning_mode=True)
+        raw_env = PPOPlannerEnv(users_pool=[user], divided_tasks={0: []}, max_tasks_count=50, planning_mode=True,
+                                start_day=start_date)
         env = make_wrapped_env(raw_env=raw_env)
         simulator = UserSimulator(user)
 
@@ -167,17 +168,20 @@ class PPOPlanner:
                 #  check if disruptor is supposed to appear
                 if disr_map and sim_day in disr_map:
                     pending_disruptors = disr_map[sim_day]
-                    if pending_disruptors and pending_disruptors[0][0] <= sim_time:
+                    disruptors_appeared = []
+                    while pending_disruptors and pending_disruptors[0][0] <= sim_time:
                         disrupt_time, disruptor_task = pending_disruptors.pop(0)
-                        dh = int(disrupt_time)
-                        dm = int((disrupt_time - dh) * 60)
+                        disruptors_appeared.append((disrupt_time, disruptor_task))
+
+                    if disruptors_appeared:
+                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
+                        first_disruption_time = min(disrupt_time for disrupt_time, _ in disruptors_appeared)
+                        dh = int(first_disruption_time)
+                        dm = int((first_disruption_time - dh) * 60)
                         disruption_occurrence_time = start_date + timedelta(days=calendar_days_passed, hours=dh,
                                                                             minutes=dm)
-                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
-                        remaining_to_plan.append(disruptor_task)
-
-                        # set to history to check instability
-                        previous_plan_state = copy.deepcopy(raw_env.current_plan)
+                        previous_plan_state = copy.deepcopy(current_plan)
                         replan_needed = True
                         print(f"PPO ------ Disruptor occurred: RE-PLANNING ------")
                         training_scenarios.append({
@@ -188,27 +192,23 @@ class PPOPlanner:
                             "time_since_last_break": time_since_last_break,
                             "total_break_time": total_break_time_today,
                             "last_task_type": raw_env.last_task_type,
-                            "task_energy_usage": simulator.task_energy_usage
+                            "task_energy_usage": simulator.task_energy_usage,
+                            "energy_debt": simulator.energy_debt,
+                            "start_energy": simulator.start_energy,
                         })
                         break
                 disruption_occurrence_time = None
 
                 current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                         minutes=int((sim_time % 1) * 60))
-                # if we finish task earlier we might want to re-plan
-                # because other task might be more efficiently performed in that gap
+
+                # if we finish tasks for the day earlier we might want to re-plan to not waste work day
                 if current_plan:
                     next_item = current_plan[0]
                     next_start_dt = next_item["start_time"]
 
-                    # time to next task
-                    gap_seconds = (next_start_dt - current_sim_dt).total_seconds()
-
-                    # re-plan if:
-                    # - there is more than one hour to next task start
-                    # - next task is in next day, and we still have over 0.5h of work day
-                    if gap_seconds > 15*60 or (
-                            next_start_dt.date() > current_sim_dt.date() and raw_env.work_end_hour - sim_time > 0.5):
+                    # re-plan if next task is in next day, and we still have over 0.5h of work day
+                    if next_start_dt.date() > current_sim_dt.date() and raw_env.work_end_hour - sim_time >= 0.5:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         previous_plan_state = copy.deepcopy(raw_env.current_plan)
                         replan_needed = True
@@ -221,12 +221,15 @@ class PPOPlanner:
                             "time_since_last_break": time_since_last_break,
                             "total_break_time": total_break_time_today,
                             "last_task_type": raw_env.last_task_type,
-                            "task_energy_usage": simulator.task_energy_usage
+                            "task_energy_usage": simulator.task_energy_usage,
+                            "energy_debt": simulator.energy_debt,
+                            "start_energy": simulator.start_energy,
                         })
                         break
 
                 # end of day
                 if sim_time >= raw_env.work_end_hour:
+                    simulator.reset(sim_time, raw_env.work_end_hour, weekly=((sim_day+1) % 5 == 0))
                     sim_day += 1
                     if sim_day >= raw_env.total_days:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
@@ -239,12 +242,13 @@ class PPOPlanner:
                                 "time_since_last_break": time_since_last_break,
                                 "total_break_time": total_break_time_today,
                                 "last_task_type": raw_env.last_task_type,
-                                "task_energy_usage": simulator.task_energy_usage
+                                "task_energy_usage": simulator.task_energy_usage,
+                                "energy_debt": simulator.energy_debt,
+                                "start_energy": simulator.start_energy,
                             })
                             print(f"PPO ------ End of month with tasks left ------")
                         remaining_to_plan = []
                         break
-                    simulator.reset(sim_time, raw_env.work_end_hour, weekly=(sim_day % 5 == 0))
                     sim_time = raw_env.work_start_hour
                     time_since_last_break = 0.0
                     total_break_time_today = 0.0
@@ -266,7 +270,9 @@ class PPOPlanner:
                                 "time_since_last_break": time_since_last_break,
                                 "total_break_time": total_break_time_today,
                                 "last_task_type": raw_env.last_task_type,
-                                "task_energy_usage": simulator.task_energy_usage
+                                "task_energy_usage": simulator.task_energy_usage,
+                                "energy_debt": simulator.energy_debt,
+                                "start_energy": simulator.start_energy,
                             })
                             break
 
@@ -278,7 +284,7 @@ class PPOPlanner:
                 current_generation += 1
 
         if training_scenarios:
-            self._finetune_on_history(user, training_scenarios)
+            self._finetune_on_history(user, training_scenarios, start_date)
 
         return {
             "total_replans": current_generation,
@@ -309,13 +315,17 @@ class PPOPlanner:
             with torch.no_grad():
                 obs_t = torch.as_tensor(obs, dtype=torch.float32, device=device)
                 pi = ac_model.pi._distribution(obs_t)
-                action = torch.argmax(pi.logits).item()
+                logits = pi.logits.clone()
+                # skip empty space in tasks when we move toward end of list
+                valid_flat_actions = (len(raw_env.remaining_tasks) + 1) * 12
+                logits[valid_flat_actions:] = -torch.inf
+                action = torch.argmax(logits).item()
             obs, _, done, _ = env.step(action)
 
         generation_time = round(time.time() - t0, 4)
         return raw_env.current_plan, generation_time
 
-    def _finetune_on_history(self, user: User, scenarios: list, epochs: int = 5):
+    def _finetune_on_history(self, user: User, scenarios: list, start_day: datetime, epochs: int = 5):
         print(f"PPO: Finetuning after month on {len(scenarios)} performed scenarios...")
         model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
@@ -328,10 +338,8 @@ class PPOPlanner:
             return ac
 
         def env_fn():
-            raw_env = PPOPlannerEnv(
-                users_pool=[user], divided_tasks={0: []},
-                training_on_history=True, historical_scenarios=scenarios
-            )
+            raw_env = PPOPlannerEnv(users_pool=[user], divided_tasks={0: []}, training_on_history=True,
+                                    historical_scenarios=scenarios, start_day=start_day)
             return make_wrapped_env(raw_env=raw_env)
 
         ppo(
