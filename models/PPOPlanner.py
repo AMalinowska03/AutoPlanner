@@ -8,8 +8,9 @@ from typing import Optional, List
 
 import torch
 
-from data.DbHelper import Repository
-from data.DbModels import User, Task
+from data.DbHelper import MonthSimulationSession
+# from data.DbHelper import Repository
+from data.DbModels import User, Task, BreakTask
 from simulation.UserSimulator import UserSimulator
 from models.PPOEnv import PPOPlannerEnv, make_wrapped_env
 from spinup.algos.pytorch.ppo.ppo import ppo, core
@@ -74,12 +75,12 @@ class PPOPlanner:
             epochs=epochs,
             pi_lr=5e-5,
             vf_lr=2e-4,
-            logger_kwargs=dict(output_dir="./PPOGenerated/finetune_u{user.id}", exp_name=f"finetune_u{user.id}")
+            logger_kwargs=dict(output_dir=f"./PPOGenerated/finetune_u{user.id}", exp_name=f"finetune_u{user.id}")
         )
         loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device, weights_only=False)
         self._save_to_storage(f"ppo_user_{user.id}_finetuned", loaded_model)
 
-    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int,
+    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], group_id: int,
                                 disruptors_map: Optional[DisruptorsMap] = None, phase='online',
                                 phase_order=0, start_date=datetime(2027, 1, 4)):
         """
@@ -97,7 +98,7 @@ class PPOPlanner:
         :return:
         """
         disr_map = copy.deepcopy(disruptors_map)
-        self.repository = Repository(user, phase, phase_order, start_date)
+        # self.repository = Repository(user, phase, phase_order, start_date)
         model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
             if model_key not in db:
@@ -134,10 +135,16 @@ class PPOPlanner:
             )
 
             # save plan to db
-            plan_record = self.repository.create_plan_records(
-                algorithm="ppo", planned_tasks=current_plan, group_id=group_id,
-                generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
+            session.record_plan(
+                planned_tasks=current_plan,
+                generation=current_generation,
+                generating_time=gen_time,
+                disruption_time=disruption_occurrence_time
             )
+            # plan_record = self.repository.create_plan_records(
+            #     algorithm="ppo", planned_tasks=current_plan, group_id=group_id,
+            #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
+            # )
 
             print(f"PPO ------ Simulating ------")
             replan_needed = False
@@ -150,7 +157,17 @@ class PPOPlanner:
                 # execute plan item
                 if plan_item.get("is_break"):
                     simulator.process_break(duration=plan_item["duration"], time=sim_time)
-                    self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
+                    # self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
+                    current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
+                                                            minutes=int((sim_time % 1) * 60))
+                    break_obj = BreakTask(duration_hours=plan_item["duration"])
+                    session.record_execution(
+                        task=break_obj,
+                        planned_start=plan_item["start_time"],
+                        planned_end=plan_item["end_time"],
+                        actual_start=current_sim_dt,
+                        actual_end=current_sim_dt + timedelta(hours=plan_item["duration"]),
+                    )
                     sim_time += plan_item["duration"]
                     time_since_last_break = 0.0
                     total_break_time_today += plan_item["duration"]
@@ -160,9 +177,17 @@ class PPOPlanner:
                     actual_dur, end_time, energy = simulator.execute_task(task, sim_time, raw_env.last_task_type)
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
-                    self.repository.save_execution_to_db(
-                        plan_record, task, current_sim_dt,
-                        current_sim_dt + timedelta(hours=actual_dur), energy
+                    # self.repository.save_execution_to_db(
+                    #     plan_record, task, current_sim_dt,
+                    #     current_sim_dt + timedelta(hours=actual_dur), energy
+                    # )
+                    session.record_execution(
+                        task=task,
+                        planned_start=plan_item["start_time"],
+                        planned_end=plan_item["end_time"],
+                        actual_start=current_sim_dt,
+                        actual_end=current_sim_dt + timedelta(hours=actual_dur),
+                        energy=energy
                     )
                     raw_env.last_task_type = task.type
                     sim_time = end_time

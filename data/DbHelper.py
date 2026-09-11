@@ -1,130 +1,118 @@
 from datetime import timedelta, datetime, time
 from typing import Optional
 
-from data.DbModels import PlanTask, Execution, Task, User, Plan
+from data.DbModels import Task, User
 from data.database import SessionLocal
 
 DisruptorsMap = dict[int, list[tuple[float, Task]]]
 
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Any
+from data.DbModels import ExperimentMetric
+from evaluation.metrics import metrics
 
-class Repository:
-    def __init__(self, user: User, phase, phase_order, phase_order_start):
-        self.session_maker = SessionLocal
+
+class MonthSimulationSession:
+    def __init__(self, user, algorithm: str, phase: str, phase_order: int, group_id: int):
         self.user = user
+        self.algorithm = algorithm
         self.phase = phase
         self.phase_order = phase_order
-        self.phase_order_start = phase_order_start
+        self.group_id = group_id
 
-    def create_plan_records(self, algorithm: str, planned_tasks: list, group_id: int, generation: int,
-                            generating_time: float, disruption_time: Optional[datetime]) -> Plan:
-        session = self.session_maker()
-        try:
-            plan = Plan(algorithm=algorithm, group=group_id, generation=generation, disruption_time=disruption_time,
-                        generating_time=generating_time, user_id=self.user.id, phase=self.phase,
-                        phase_order=self.phase_order)
-            session.add(plan)
-            session.flush()
+        # memory containers
+        self.plans_history: List[Dict[str, Any]] = []
+        self.executed_tasks: List[Dict[str, Any]] = []
+        self.generation_times: List[float] = []
+        self.initial_planned_tasks_count: int = 0
+        self.daily_completion_rates: List[float] = []
 
-            # planned_tasks is a list of elements like: (task_id, start_time, end_time)
-            for t_data in planned_tasks:
-                if t_data.get("is_break"):
-                    # saving just tasks, breaks are saved when they are actually performed
-                    continue
-                pt = PlanTask(
-                    plan_id=plan.id,
-                    user_id=self.user.id,
-                    task_id=t_data['task_id'],
-                    start_time=t_data['start_time'],
-                    end_time=t_data['end_time']
-                )
-                session.add(pt)
-            session.commit()
-            return plan
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
+    def record_plan(self, planned_tasks: list, generation: int, generating_time: float,
+                    disruption_time: Optional[datetime]):
+        """
+        Records plan iterations
+        :param planned_tasks:
+        :param generation:
+        :param generating_time:
+        :param disruption_time:
+        :return:
+        """
+        self.generation_times.append(generating_time)
 
-    def save_break(self, break_duration: float, plan_record: Plan, start_hour_float: float, current_day: datetime):
-        session = self.session_maker()
-        try:
-            task = Task(name="Break", workhours=break_duration, priority="low", phase=self.phase,
-                        phase_order=self.phase_order, is_break=True)
-            session.add(task)
-            session.flush()
+        tasks_map = {}
+        for item in planned_tasks:
+            if not item.get("is_break"):
+                tasks_map[item["task_id"]] = {
+                    "task_id": item["task_id"],
+                    "start_time": item["start_time"],
+                    "end_time": item["end_time"],
+                    "duration": item.get("duration", (item["end_time"] - item["start_time"]).total_seconds() / 3600.0),
+                    "task": item["task"]
+                }
 
-            h = int(start_hour_float)
-            m = int((start_hour_float - h) * 60)
-            start_time = datetime(current_day.year, current_day.month, current_day.day, h, m)
+        if generation == 0:
+            self.initial_planned_tasks_count = len(tasks_map)
 
-            plan_task = PlanTask(
-                plan_id=plan_record.id, task_id=task.id, user_id=self.user.id,
-                start_time=start_time, end_time=start_time + timedelta(hours=break_duration)
+        self.plans_history.append({
+            "generation": generation,
+            "disruption_time": disruption_time,
+            "tasks": tasks_map
+        })
+
+    def record_execution(self, task, planned_start: datetime, planned_end: datetime,
+                         actual_start: datetime, actual_end: datetime, energy: float = 0.0):
+        """
+        Zapisuje wykonanie wraz z planem algorytmu z momentu rozpoczęcia zadania.
+        Pozwala to porównać estymację algorytmu z fizyczną symulacją użytkownika.
+        """
+        self.executed_tasks.append({
+            "task": task,
+            "planned_start": planned_start,
+            "planned_end": planned_end,
+            "planned_duration_sec": (planned_end - planned_start).total_seconds(),
+            "actual_start": actual_start,
+            "actual_end": actual_end,
+            "actual_duration_sec": (actual_end - actual_start).total_seconds(),
+            "energy": energy
+        })
+
+    def compute_and_save_to_db(self, session_maker, total_replans: int, days_used: int):
+        avg_gen_time = (
+            sum(self.generation_times) / len(self.generation_times)
+            if self.generation_times else 0.0
+        )
+
+        # calculate metrics
+        tasks_executed_no_breaks = [e for e in self.executed_tasks if not getattr(e["task"], "is_break", False)]
+        monthly_completion_sc = round(len(tasks_executed_no_breaks) / max(self.initial_planned_tasks_count, 1), 4)
+        daily_completion_sc = metrics.daily_task_completion_score(self.plans_history, self.executed_tasks)
+        estimation_err = metrics.task_time_estimation_score(self.executed_tasks)
+        delay_sc = metrics.task_execution_delay_score(self.executed_tasks)
+        energy_sc = metrics.energy_distribution_score(self.executed_tasks, self.user)
+        switch_metrics = metrics.context_switch_score(self.executed_tasks)
+        instability_sc = metrics.instability_score(self.plans_history)
+
+        # save sumup of month to db
+        with session_maker() as session:
+            metric_record = ExperimentMetric(
+                experiment_type=self.phase,
+                algorithm=self.algorithm,
+                user_id=self.user.id,
+                phase_order=self.phase_order,
+                group_id=self.group_id,
+                total_replans=total_replans,
+                days_used=days_used,
+                avg_generating_time=round(avg_gen_time, 4),
+                monthly_completion_score=monthly_completion_sc,
+                daily_completion_score=daily_completion_sc,
+                time_estimation_error=estimation_err,
+                delay_score=delay_sc,
+                energy_score=energy_sc,
+                switch_efficiency=switch_metrics["efficiency_ratio"],
+                instability=instability_sc
             )
-            session.add(plan_task)
+            session.add(metric_record)
             session.commit()
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
-
-    def save_plan_task(self, task_id, start_time, end_time):
-        session = self.session_maker()
-        try:
-            plan_task = PlanTask(task_id=task_id, user_id=self.user.id, start_time=start_time, end_time=end_time)
-            session.add(plan_task)
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
-
-    def save_execution_to_db(self, plan_record, task, start_date, end_date, energy_used):
-        session = self.session_maker()
-        try:
-            plan_task = session.query(PlanTask).filter(
-                PlanTask.plan_id == plan_record.id,
-                PlanTask.task_id == task.id,
-                PlanTask.user_id == self.user.id,
-            ).first()
-
-            if plan_task:
-                execution = Execution(
-                    plan_task_id=plan_task.id,
-                    start_time=start_date,
-                    end_time=end_date,
-                    energy=energy_used
-                )
-                session.add(execution)
-                session.commit()
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
-
-    def get_disruptor_tasks(self, phase_order: int) -> list[Task]:
-        session = self.session_maker()
-
-        try:
-            tasks = (
-                session.query(Task)
-                .filter(
-                    Task.phase == "disruptions",
-                    Task.phase_order == phase_order,
-                    Task.is_disruptor.is_(True)
-                )
-                .order_by(Task.injection_time)
-                .all()
-            )
-            for task in tasks:
-                session.expunge(task)
-            return tasks
-        finally:
-            session.close()
 
 
 def get_user_work_hours(user):

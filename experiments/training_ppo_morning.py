@@ -46,9 +46,7 @@ def prepare_data_for_training(
 
         tasks_records = (
             session.query(Task)
-            .filter(
-                Task.phase_order <= max_phase_order
-            )
+            .filter_by(phase=phase)
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
@@ -64,9 +62,9 @@ def prepare_data_for_training(
 def run_ppo_training(phase: str, users: list[User], tasks: dict[int, list[Task]]):
     print(f"------------------------- PPO {phase} -------------------------")
     planner = PPOPlanner()
-    if phase == 'pretrain':
-        planner.pretrain(users, tasks)
-    elif phase == 'finetune':
+    # if phase == 'pretrain':
+    #     planner.pretrain(users, tasks)
+    if phase == 'finetune':
         for user in users:
             planner.finetune_user(user, tasks)
 
@@ -79,7 +77,8 @@ def choose_nsga_params(phase: str, users: list[User], tasks: dict[int, list[Task
     if phase == 'pretrain':
         planner.pretrain(users, tasks)
     elif phase == 'finetune':
-        print("Not finetuning, won't give any effect")
+        for user in users:
+            planner.finetune(user, tasks)
 
     print(f"------------------------- NSGA {phase}: END -------------------------")
 

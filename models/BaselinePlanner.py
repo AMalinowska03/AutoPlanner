@@ -4,8 +4,8 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from data.DbHelper import get_user_work_hours, Repository
-from data.DbModels import User, Task
+from data.DbHelper import get_user_work_hours, MonthSimulationSession  # , Repository
+from data.DbModels import User, Task, BreakTask
 from simulation.UserSimulator import UserSimulator
 
 DisruptorsMap = dict[int, list[tuple[float, Task]]]
@@ -17,10 +17,10 @@ class BaselinePlanner:
         self.work_start_hour, self.work_end_hour = get_user_work_hours(user)
         self.repository = None
 
-    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int, disruptors_map: Optional[DisruptorsMap] = None,
+    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], group_id: int, disruptors_map: Optional[DisruptorsMap] = None,
                                 phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
         disr_map = copy.deepcopy(disruptors_map)
-        self.repository = Repository(self.user, phase, phase_order, start_date)
+        # self.repository = Repository(self.user, phase, phase_order, start_date)
 
         simulator = UserSimulator(self.user)
         current_generation = 0
@@ -41,10 +41,16 @@ class BaselinePlanner:
                                                          )
 
             # save plan to db
-            plan_record = self.repository.create_plan_records(
-                algorithm="baseline", planned_tasks=current_plan, group_id=group_id,
-                generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
+            session.record_plan(
+                planned_tasks=current_plan,
+                generation=current_generation,
+                generating_time=gen_time,
+                disruption_time=disruption_occurrence_time
             )
+            # plan_record = self.repository.create_plan_records(
+            #     algorithm="baseline", planned_tasks=current_plan, group_id=group_id,
+            #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
+            # )
 
             print(f"Base ------ Simulating ------")
             replan_needed = False
@@ -57,7 +63,18 @@ class BaselinePlanner:
                 # execute plan item
                 if plan_item.get("is_break"):
                     simulator.process_break(duration=plan_item["duration"], time=sim_time)
-                    self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
+
+                    current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
+                                                            minutes=int((sim_time % 1) * 60))
+                    break_obj = BreakTask(duration_hours=plan_item["duration"])
+                    session.record_execution(
+                        task=break_obj,
+                        planned_start=plan_item["start_time"],
+                        planned_end=plan_item["end_time"],
+                        actual_start=current_sim_dt,
+                        actual_end=current_sim_dt + timedelta(hours=plan_item["duration"]),
+                    )
+                    # self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
                     sim_time += plan_item["duration"]
                     time_since_last_break = 0.0
                     total_break_time_today += plan_item["duration"]
@@ -67,10 +84,19 @@ class BaselinePlanner:
                     actual_dur, end_time, energy = simulator.execute_task(task, sim_time, last_task_type)
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
-                    self.repository.save_execution_to_db(
-                        plan_record, task, current_sim_dt,
-                        current_sim_dt + timedelta(hours=actual_dur), energy
+
+                    session.record_execution(
+                        task=task,
+                        planned_start=plan_item["start_time"],
+                        planned_end=plan_item["end_time"],
+                        actual_start=current_sim_dt,
+                        actual_end=current_sim_dt + timedelta(hours=actual_dur),
+                        energy=energy
                     )
+                    # self.repository.save_execution_to_db(
+                    #     plan_record, task, current_sim_dt,
+                    #     current_sim_dt + timedelta(hours=actual_dur), energy
+                    # )
                     last_task_type = task.type
                     sim_time = end_time
                     time_since_last_break += actual_dur

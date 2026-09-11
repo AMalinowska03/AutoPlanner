@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from data.DbHelper import MonthSimulationSession
 from data.DbModels import User, Task
 from data.database import SessionLocal
 from models.BaselinePlanner import BaselinePlanner
@@ -13,11 +14,12 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
         raise ValueError(f"Unavailable phase: '{phase}'. possible values: 'online'.")
 
     with SessionLocal() as session:
-        users = session.query(User).filter_by(is_training=False).all()
+        user_ids = []
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
 
         tasks_records = (
             session.query(Task)
-            .filter_by(phase=phase)
+            .filter(Task.phase_order <= 12)  # only from a year
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
@@ -46,9 +48,17 @@ def run_experiment():
                 raise ValueError(f"Unavailable algorithm: '{algorithm}'")
 
             start_date = datetime(year=2027, month=1, day=4)
-            for phase_order, month_tasks in tasks:
-                res = planner.plan_and_simulate_month(user=user, month_tasks=month_tasks, group_id=group_id,
-                                                      phase="online", phase_order=phase_order, start_date=start_date)
+            for phase_order, month_tasks in tasks.items():
+                sim_session = MonthSimulationSession(user, algorithm, 'online', phase_order, group_id)
+                res = planner.plan_and_simulate_month(session=sim_session,  user=user, month_tasks=month_tasks,
+                                                      group_id=group_id, phase="online", phase_order=phase_order,
+                                                      start_date=start_date)
 
-                # save res to file to plot later
+                sim_session.compute_and_save_to_db(SessionLocal, res["total_replans"], res["days_used"])
                 start_date = start_date + timedelta(days=28)
+                group_id += 1
+
+
+            # plot to files for user
+
+        # plot to files per algorithm

@@ -1,61 +1,10 @@
-from typing import List
+from typing import List, Dict, Any
 import math
 from simulation.UserSimulator import CHRONOTYPES, SKILL_ATTR_MAP, SWITCH_MATRIX, calculate_switch_lag
 from collections import defaultdict
-from data.DbModels import Execution, PlanTask, Plan, User
+from data.DbModels import User
 
 PRIORITY_WEIGHTS = {"low": 0.25, "medium": 0.5, "high": 0.75, "urgent": 1.0}
-
-
-def daily_task_completion_score(planned_tasks, executed_tasks):
-    """
-    Fraction of tasks completed in a day compared to planned tasks
-    :param planned_tasks: tasks that were planned for that day
-    :param executed_tasks: tasks actually completed
-    :return:
-    """
-    planned_tasks = [t for t in planned_tasks if t.task_id != 0]
-    executed_tasks = [e for e in executed_tasks if e.plan_task and e.plan_task.task_id != 0]
-    if not planned_tasks:
-        return 1.0
-
-    if not executed_tasks:
-        return 0.0
-    return round(len(executed_tasks)/len(planned_tasks), 2)
-
-
-def task_time_estimation_score(executed_tasks: List[Execution]) -> float:
-    score = 0.0
-    weight_sum = 0.0
-    for execution in executed_tasks:
-        planned_task = execution.plan_task
-        if planned_task.task.is_break:
-            continue
-        expected_time = (planned_task.end_time - planned_task.start_time).total_seconds()
-        execution_time = (execution.end_time - execution.start_time).total_seconds()
-        difference = abs(execution_time - expected_time)
-        weight = PRIORITY_WEIGHTS[execution.plan_task.task.priority]
-        weight_sum += weight
-        score += (difference/max(expected_time, 1.0))*weight
-    if weight_sum == 0.0:
-        return 0.0
-    return round(score/weight_sum, 4)
-
-
-def task_execution_delay_score(executed_tasks: List[Execution]):
-    priority_weighed_delays = 0.0
-    weight_sum = 0.0
-    for execution in executed_tasks:
-        if execution.plan_task.task.is_break or execution.plan_task.task.deadline is None:
-            continue
-        task = execution.plan_task.task
-        delay = (execution.end_time - task.deadline).total_seconds() / 3600.0
-        if delay > 0:
-            priority_weighed_delays += PRIORITY_WEIGHTS[task.priority] * delay
-        weight_sum += PRIORITY_WEIGHTS[task.priority]
-    if weight_sum == 0.0:
-        return 0.0
-    return round(priority_weighed_delays/weight_sum, 4)
 
 
 def get_task_difficulty(task, user: User) -> float:
@@ -70,28 +19,126 @@ def get_expected_attention(chronotype: str, hour_decimal: float) -> float:
     return (attention + 0.15) / 0.3
 
 
-def energy_distribution_score(planned_tasks: List[PlanTask]) -> float:
+def daily_task_completion_score(plans_history: List[dict], executed_tasks: List[Dict[str, Any]]) -> float:
+    """
+    Checks plan realisation day by day.
+    For each day we choose plan day was started with.
+    Added tasks when time left are counted onl as bonus not lowering the score when they are not finished by EoD.
+    """
+    if not plans_history:
+        return 1.0
+
+    # tasks completed (not breaks)
+    executed_by_day = defaultdict(set)
+    for exc in executed_tasks:
+        task = exc["task"]
+        if getattr(task, "is_break", False):
+            continue
+        day_date = exc["actual_start"].date()
+        executed_by_day[day_date].add(task.id)
+
+    # get unique dates plans were created for
+    all_dates = set()
+    for plan in plans_history:
+        for t_info in plan["tasks"].values():
+            if not t_info.get("is_break"):
+                all_dates.add(t_info["start_time"].date())
+
+    if not all_dates:
+        return 1.0
+
+    daily_scores = []
+
+    # sort plans by generation
+    sorted_plans = sorted(plans_history, key=lambda p: p["generation"])
+
+    for current_date in sorted(all_dates):
+        # A. Wyznaczamy plan poranny (baza dnia):
+        # morning plan of the day - last known generation created before or at the start of that day
+        morning_plan_tasks = set()
+        for plan in sorted_plans:
+            tasks_for_today = {
+                t_id for t_id, t_info in plan["tasks"].items()
+                if t_info["start_time"].date() == current_date and not t_info.get("is_break")
+            }
+            if tasks_for_today:
+                morning_plan_tasks = tasks_for_today
+                # stop at first generation that created day's plan
+                break
+
+        if not morning_plan_tasks:
+            continue
+
+        completed_today = executed_by_day.get(current_date, set())
+
+        # how many were executed from morning plan on that day
+        base_completed = morning_plan_tasks.intersection(completed_today)
+        # how many extras were added
+        extra_completed = completed_today.difference(morning_plan_tasks)
+
+        # completed tasks for the day compared to planned
+        total_success = len(base_completed) + len(extra_completed)
+        day_score = min(1.0, total_success / max(len(morning_plan_tasks), 1))
+
+        daily_scores.append(day_score)
+
+    if not daily_scores:
+        return 1.0
+
+    return round(float(sum(daily_scores) / len(daily_scores)), 4)
+
+
+def task_time_estimation_score(executed_tasks: List[Dict[str, Any]]) -> float:
+    score = 0.0
+    weight_sum = 0.0
+    for execution in executed_tasks:
+        task = execution["task"]
+        if getattr(task, "is_break", False):
+            continue
+        expected_time = execution["planned_duration_sec"]
+        execution_time = execution["actual_duration_sec"]
+        difference = abs(execution_time - expected_time)
+        weight = PRIORITY_WEIGHTS.get(task.priority, 0.5)
+        weight_sum += weight
+        score += (difference/max(expected_time, 1.0))*weight
+    return round(score/weight_sum, 4) if weight_sum > 0.0 else 0.0
+
+
+def task_execution_delay_score(executed_tasks: List[Dict[str, Any]]):
+    priority_weighed_delays = 0.0
+    weight_sum = 0.0
+    for execution in executed_tasks:
+        task = execution["task"]
+        if getattr(task, "is_break", False) or task.deadline is None:
+            continue
+        delay = (execution["actual_end"] - task.deadline).total_seconds() / 3600.0
+        if delay > 0:
+            priority_weighed_delays += PRIORITY_WEIGHTS.get(task.priority, 0.5) * delay
+        weight_sum += PRIORITY_WEIGHTS[task.priority]
+    return round(priority_weighed_delays/weight_sum, 4) if weight_sum > 0.0 else 0.0
+
+
+def energy_distribution_score(executed_tasks: List[Dict[str, Any]], user) -> float:
     """
     Score of how well plan is adjusted to user attention distribution throughout the day
     Score of 1 means the assignment is perfect and most demanding tasks are assigned in peak attention time
-    :param planned_tasks:
+    :param executed_tasks:
     :return:
     """
-    if not planned_tasks:
+    if not executed_tasks:
         return 1.0
 
     total_weight = 0.0
     weighted_alignment = 0.0
 
-    for pt in planned_tasks:
-        if pt.task.is_break:
+    for execution in executed_tasks:
+        task = execution["task"]
+        if getattr(task, "is_break", False):
             continue
-        user = pt.user
-        task = pt.task
 
         # middle time of planned task (np. 14:30 -> 14.5)
-        mid_time = pt.start_time + (pt.end_time - pt.start_time) / 2
-        decimal_hour = mid_time.hour + mid_time.minute / 60.0 + mid_time.second / 3600.0
+        mid_dt = execution["actual_start"] + (execution["actual_end"] - execution["actual_start"]) / 2
+        decimal_hour = mid_dt.hour + mid_dt.minute / 60.0 + mid_dt.second / 3600.0
 
         # normalized attention
         norm_attention = get_expected_attention(user.chronotype, decimal_hour)
@@ -101,13 +148,10 @@ def energy_distribution_score(planned_tasks: List[PlanTask]) -> float:
         weighted_alignment += difficulty * norm_attention
         total_weight += difficulty
 
-    if total_weight == 0:
-        return 1.0
-
-    return round(weighted_alignment / total_weight, 4)
+    return round(weighted_alignment / total_weight, 4) if total_weight > 0.0 else 1.0
 
 
-def context_switch_score(plan: Plan) -> dict[str, float]:
+def context_switch_score(executed_tasks: List[Dict[str, Any]]) -> dict[str, float]:
     """
     Checked on final plan that was executed,
     how much time loss there was the result of context switching between task types
@@ -115,30 +159,30 @@ def context_switch_score(plan: Plan) -> dict[str, float]:
     :param plan:
     :return:
     """
-    tasks = list(plan.plan_tasks.values())
-    if not tasks:
+    if not executed_tasks:
         return {"total_switch_hours": 0.0, "avg_daily_switch_hours": 0.0, "efficiency_ratio": 1.0}
 
     tasks_by_day = defaultdict(list)
-    for pt in tasks:
-        tasks_by_day[pt.start_time.date()].append(pt)
+    for execution in executed_tasks:
+        tasks_by_day[execution["actual_start"].date()].append(execution)
 
     total_switch_hours = 0.0
     total_work_hours = 0.0
 
     for day, day_tasks in tasks_by_day.items():
         # tasks sorted by start_time just in case
-        day_tasks.sort(key=lambda x: x.start_time)
+        day_tasks.sort(key=lambda x: x["actual_start"])
 
         prev_type = None
-        for pt in day_tasks:
+        for exc in day_tasks:
+            task = exc["task"]
             # when break there is no context switch
-            if pt.task.is_break:
+            if getattr(task, "is_break", False):
                 prev_type = None
                 continue
 
-            curr_type = pt.task.type
-            total_work_hours += float(pt.task.workhours)
+            curr_type = task.type
+            total_work_hours += exc["actual_duration_sec"] / 3600.0
 
             if prev_type is not None:
                 cost, duration = calculate_switch_lag(prev_type, curr_type)
@@ -162,39 +206,42 @@ def context_switch_score(plan: Plan) -> dict[str, float]:
     }
 
 
-def instability_score(plans: List[Plan]):
+def instability_score(plans: List[dict]):
     """
     For generations of each plan we generate how much disruptions influenced the plan stability
     and take the average of that measure where disruptor task
     :param plans: plans of same group
     :return:
     """
-    plans = sorted(plans, key=lambda p: p.generation)
+    sorted_plans = sorted(plans, key=lambda p: p["generation"])
     previous_plan = None
     distance_factor = 0.3
     disruption_impact = 0.0
     tasks_count = 0
-    for plan in plans:
-        if previous_plan is None or plan.disruption_time is None:
+    for plan in sorted_plans:
+        disr_time = plan.get("disruption_time")
+        if previous_plan is None or disr_time is None:
             previous_plan = plan
             continue
-        for current_plan_task_id in plan.plan_tasks:
-            current_plan_task = plan.plan_tasks.get(current_plan_task_id)
-            if current_plan_task.task.is_break:
+        curr_tasks = plan["tasks"]
+        prev_tasks = previous_plan["tasks"]
+        for task_id, cur_t in curr_tasks.items():
+            if cur_t.get("is_break"):
                 continue
             # check just impact on the ones after disruption cause those before are not changing anymore
-            if current_plan_task.start_time < plan.disruption_time:
+            if cur_t["start_time"] < disr_time:
                 continue
-            previous_plan_task = previous_plan.plan_tasks.get(current_plan_task_id)
+
             # we are not counting the added task
-            if previous_plan_task:
-                old = previous_plan_task.start_time
-                new = current_plan_task.start_time
-                disruption_impact += (
-                        (abs(old - new).total_seconds()/3600.0)/(max(0.0, (old - plan.disruption_time).total_seconds()) / 3600.0 + 1.0)**distance_factor
-                )
+            if task_id in prev_tasks:
+                prev_t = prev_tasks[task_id]
+                old = prev_t["start_time"]
+                new = cur_t["start_time"]
+
+                delay_diff = abs((old - new).total_seconds()) / 3600.0
+                dist_to_disrupt = max(0.0, (old - disr_time).total_seconds() / 3600.0)
+                disruption_impact += delay_diff / ((dist_to_disrupt + 1.0) ** distance_factor)
                 tasks_count += 1
         previous_plan = plan
-    if tasks_count == 0:
-        return 0.0
-    return round(disruption_impact/tasks_count, 4)
+
+    return round(disruption_impact/tasks_count, 4) if tasks_count > 0 else 0.0

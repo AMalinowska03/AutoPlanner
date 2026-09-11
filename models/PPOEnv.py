@@ -407,7 +407,7 @@ class PPOPlannerEnv(gym.Env):
 
         # reward (break for eating midday)
         if 11.5 < self.current_time_in_day < 14.5 and 0.25 <= break_duration <= 0.75:
-            break_reward += break_duration * PENALTY_WEIGHT_HEALTH
+            break_reward += 2 * break_duration * PENALTY_WEIGHT_HEALTH
 
         return break_reward
 
@@ -423,7 +423,7 @@ class PPOPlannerEnv(gym.Env):
             # missing deadline is more crucial to correct than rewarding for doing task on time
             deadline_reward -= (1.0 + tardiness_days) * PENALTY_WEIGHT_DEADLINE * w_prio
         else:
-            deadline_reward += PENALTY_WEIGHT_DEADLINE * w_prio
+            deadline_reward += 1.5 * PENALTY_WEIGHT_DEADLINE * w_prio
         return deadline_reward
 
     def _calculate_time_allotment_reward(self, task: Task, action_time, actual_duration: float):

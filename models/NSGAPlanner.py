@@ -1,6 +1,7 @@
 import math
 import copy
 import io
+import os
 import shelve
 import time
 import optuna
@@ -17,17 +18,17 @@ from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.core.problem import Problem
 
-from data.DbHelper import Repository, get_user_work_hours, sim_time_to_datetime
-from data.DbModels import User, Task
+from data.DbHelper import get_user_work_hours, sim_time_to_datetime, MonthSimulationSession
+from data.DbModels import User, Task, BreakTask
 from simulation.UserSimulator import UserSimulator, calculate_switch_lag
 
 DisruptorsMap = dict[int, list[tuple[float, Task]]]
 
 TIME_MULTIPLIERS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 3.0, 3.5, 4.0]
-PENALTY_WEIGHT_DEADLINE = 6.0
-PENALTY_WEIGHT_EFFICIENCY = 3.0
-PENALTY_WEIGHT_STABILITY = 2.0
-PENALTY_WEIGHT_HEALTH = 1.5
+PENALTY_WEIGHT_DEADLINE = 0.60
+PENALTY_WEIGHT_EFFICIENCY = 0.30
+PENALTY_WEIGHT_STABILITY = 0.20
+PENALTY_WEIGHT_HEALTH = 0.15
 
 PARETO_SELECTION_WEIGHTS = np.array([
     6.0,  # deadline
@@ -147,6 +148,9 @@ class PlanOptimizationProblem(Problem):
             obj_deadline += self._calculate_deadline_reward(current_day, task, end_time)
             obj_eff += self._calculate_time_allotment_reward(task, planned_duration, actual_duration)
             obj_disrupt += self._calculate_disruption_reward(task, current_abs_start)
+            if time_since_break > 3.5:
+                overwork = time_since_break - 3.5
+                obj_health += overwork * PENALTY_WEIGHT_HEALTH * 2.0
 
             current_time = end_time
             time_since_break += actual_duration
@@ -204,13 +208,11 @@ class PlanOptimizationProblem(Problem):
             # missing deadline is more crucial to correct than rewarding for doing task on time
             deadline_reward += (1.0 + tardiness_days) * PENALTY_WEIGHT_DEADLINE * w_prio
         else:
-            deadline_reward -= PENALTY_WEIGHT_DEADLINE * w_prio
+            deadline_reward -= 2 * PENALTY_WEIGHT_DEADLINE * w_prio
         return deadline_reward
 
-    def _calculate_time_allotment_reward(self, task: Task, action_time, actual_duration: float):
+    def _calculate_time_allotment_reward(self, task: Task, planned_duration, actual_duration: float):
         time_reward = 0.0
-        time_multiplier = TIME_MULTIPLIERS[action_time % len(TIME_MULTIPLIERS)]
-        planned_duration = time_multiplier * float(task.workhours)
         # penalty (task execution time exceeded/finished early - disruption, overtime)
         # we cap it at -8h +8h - standard work day length, already badly allocated, prevents reward from exploding
         planning_time_difference = max(-8.0, min(8.0, actual_duration - planned_duration))
@@ -292,7 +294,7 @@ class NSGAPlanner:
 
         def objective(trial):
             # Optuna chooses evolution params
-            n_partitions = trial.suggest_int("n_partitions", 2, 6)  # pop_size (10 - 84)
+            n_partitions = trial.suggest_int("n_partitions", 3, 6)  # pop_size (10 - 84)
             n_gen = trial.suggest_int("n_gen", 20, 100)
             prob_cross = trial.suggest_float("prob_cross", 0.5, 1.0)
             eta_mut = trial.suggest_int("eta_mut", 10, 30)
@@ -303,7 +305,7 @@ class NSGAPlanner:
             for user, tasks in scenarios:
                 plan = self._optimization(user, tasks, params, training_date)
                 if plan is None:
-                    scenario_scores.append(float("inf"))
+                    scenario_scores.append(500.0)
                     continue
                 score = self._evaluate_plan_with_simulator(user, plan, training_date)
                 scenario_scores.append(score)
@@ -316,50 +318,13 @@ class NSGAPlanner:
         print(f"NSGA ------ Best global params: {study.best_params}")
         self._save_to_storage("base_nsga_params", study.best_params)
 
-    def finetune(self, user: User, finetune_tasks: dict, n_trials: int = 15):
-        """
-        Dostraja hiperparametry dla konkretnego użytkownika, startując wokół bazy z Pretrain.
-        """
-        print(f"NSGA ------ Finetuning (Optuna) for user {user.id}...")
-
-        base_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
-        with shelve.open(self.storage_path) as db:
-            if "base_nsga_params" in db:
-                base_params = db["base_nsga_params"]
-
-        scenarios = sample_scenarios([user], finetune_tasks, len(finetune_tasks))
-        training_date = datetime(year=2027, month=2, day=1)
-
-        def objective(trial):
-            # limit params to tuning globally found values (Fine-tuning)
-            n_partitions = trial.suggest_int("n_partitions", max(2, base_params["n_partitions"] - 1),
-                                             base_params["n_partitions"] + 1)
-            n_gen = trial.suggest_int("n_gen", max(20, base_params["n_gen"] - 20), base_params["n_gen"] + 20)
-            prob_cross = trial.suggest_float("prob_cross", max(0.5, base_params["prob_cross"] - 0.2),
-                                             min(1.0, base_params["prob_cross"] + 0.1))
-
-            scenario_scores = []
-
-            params = {"n_partitions": n_partitions, "n_gen": n_gen, "prob_cross": prob_cross,
-                      "eta_mut": base_params["eta_mut"]}
-            for scenario_user, tasks in scenarios:
-                plan = self._optimization(scenario_user, tasks, params, training_date)
-                if plan is None:
-                    scenario_scores.append(float("inf"))
-                    continue
-                score = self._evaluate_plan_with_simulator(scenario_user, plan, training_date)
-                scenario_scores.append(score)
-
-            return np.mean(scenario_scores)
-
-        study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=n_trials)
-
-        best_params = {**study.best_params, "eta_mut": base_params["eta_mut"]}
-        self._save_to_storage(f"user_{user.id}_nsga_params", best_params)
 
     def _select_from_pareto(self, res):
         if res.F is None or res.X is None:
+            if hasattr(res, "pop") and res.pop is not None and len(res.pop) > 0:
+                cv = res.pop.get("CV")
+                best_idx = int(np.argmin(cv))
+                return res.pop.get("X")[best_idx]
             return None
 
         F = np.atleast_2d(np.asarray(res.F, dtype=float))
@@ -464,7 +429,7 @@ class NSGAPlanner:
 
                     if delay > 0:
                         priority_weight = PRIO_WEIGHTS.get(task.priority, 1.0)
-                        deadline_delay_sum += delay * priority_weight
+                        deadline_delay_sum += math.log1p(max(0.0, delay)) * priority_weight
 
                 estimation_error_sum += abs(actual_duration - planned_duration) / max(actual_duration, 1e-6)
                 completed += 1
@@ -473,7 +438,7 @@ class NSGAPlanner:
                 last_task_type = task.type
 
             if sim_time >= work_end_hour:
-                overtime_sum += max(0.0, sim_time - work_end_hour) ** 2
+                overtime_sum += max(0.0, sim_time - work_end_hour)
 
                 simulator.reset(sim_time, work_end_hour, weekly=(sim_day + 1) % 5 == 0)
                 sim_day += 1
@@ -492,26 +457,26 @@ class NSGAPlanner:
 
         used_days = max(1, min(sim_day + 1, total_days))
         mean_overtime = overtime_sum / used_days
-
         return float(
             50.0 * completion_loss
-            + 6.0 * mean_deadline_delay
-            + 3.0 * mean_estimation_error
-            + 1.5 * mean_overtime
+            + 2.0 * mean_deadline_delay
+            + 1.0 * mean_estimation_error
+            + 1.0 * mean_overtime
         )
 
-    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int,
+    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], group_id: int,
                                 disruptors_map: Optional[DisruptorsMap] = None,
                                 phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
         disr_map = copy.deepcopy(disruptors_map)
-        self.repository = Repository(user, phase, phase_order, start_date)
+        # self.repository = Repository(user, phase, phase_order, start_date)
+
         work_start_hour, work_end_hour = get_user_work_hours(user)
 
         # load user params nor NSGA
         self.nsga_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
         with shelve.open(self.storage_path) as db:
-            if f"user_{user.id}_nsga_params" in db:
-                self.nsga_params = db[f"user_{user.id}_nsga_params"]
+            if "base_nsga_params" in db:
+                self.nsga_params = db["base_nsga_params"]
 
         simulator = UserSimulator(user)
         current_generation = 0
@@ -532,10 +497,16 @@ class NSGAPlanner:
                                                          work_start_hour, work_end_hour, 20, start_date)
 
             # save plan to db
-            plan_record = self.repository.create_plan_records(
-                algorithm="nsga", planned_tasks=current_plan, group_id=group_id,
-                generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
+            session.record_plan(
+                planned_tasks=current_plan,
+                generation=current_generation,
+                generating_time=gen_time,
+                disruption_time=disruption_occurrence_time
             )
+            # plan_record = self.repository.create_plan_records(
+            #     algorithm="nsga", planned_tasks=current_plan, group_id=group_id,
+            #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
+            # )
 
             print(f"NSGA ------ Simulating ------")
             replan_needed = False
@@ -548,7 +519,17 @@ class NSGAPlanner:
                 # execute plan item
                 if plan_item.get("is_break"):
                     simulator.process_break(duration=plan_item["duration"], time=sim_time)
-                    self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
+                    # self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
+                    current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
+                                                            minutes=int((sim_time % 1) * 60))
+                    break_obj = BreakTask(duration_hours=plan_item["duration"])
+                    session.record_execution(
+                        task=break_obj,
+                        planned_start=plan_item["start_time"],
+                        planned_end=plan_item["end_time"],
+                        actual_start=current_sim_dt,
+                        actual_end=current_sim_dt + timedelta(hours=plan_item["duration"]),
+                    )
                     sim_time += plan_item["duration"]
                     time_since_last_break = 0.0
                     total_break_time_today += plan_item["duration"]
@@ -558,9 +539,17 @@ class NSGAPlanner:
                     actual_dur, end_time, energy = simulator.execute_task(task, sim_time, last_task_type)
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
-                    self.repository.save_execution_to_db(
-                        plan_record, task, current_sim_dt,
-                        current_sim_dt + timedelta(hours=actual_dur), energy
+                    # self.repository.save_execution_to_db(
+                    #     plan_record, task, current_sim_dt,
+                    #     current_sim_dt + timedelta(hours=actual_dur), energy
+                    # )
+                    session.record_execution(
+                        task=task,
+                        planned_start=plan_item["start_time"],
+                        planned_end=plan_item["end_time"],
+                        actual_start=current_sim_dt,
+                        actual_end=current_sim_dt + timedelta(hours=actual_dur),
+                        energy=energy
                     )
                     last_task_type = task.type
                     sim_time = end_time
@@ -675,6 +664,7 @@ class NSGAPlanner:
         return current_plan, generation_time
 
     def _save_to_storage(self, key: str, params: dict):
+        os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
         with shelve.open(self.storage_path) as db:
             db[key] = params
 

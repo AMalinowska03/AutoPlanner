@@ -46,9 +46,7 @@ def prepare_data_for_training(
 
         tasks_records = (
             session.query(Task)
-            .filter(
-                Task.phase_order <= max_phase_order
-            )
+            .filter_by(phase=phase)
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
@@ -64,9 +62,9 @@ def prepare_data_for_training(
 def run_ppo_training(phase: str, users: list[User], tasks: dict[int, list[Task]]):
     print(f"------------------------- PPO {phase} -------------------------")
     planner = PPOPlanner()
-    if phase == 'pretrain':
-        planner.pretrain(users, tasks)
-    elif phase == 'finetune':
+    # if phase == 'pretrain':
+    #     planner.pretrain(users, tasks)
+    if phase == 'finetune':
         for user in users:
             planner.finetune_user(user, tasks)
 
@@ -79,15 +77,16 @@ def choose_nsga_params(phase: str, users: list[User], tasks: dict[int, list[Task
     if phase == 'pretrain':
         planner.pretrain(users, tasks)
     elif phase == 'finetune':
-        print("Not finetuning, won't give any effect")
+        for user in users:
+            planner.finetune(user, tasks)
 
     print(f"------------------------- NSGA {phase}: END -------------------------")
 
 
 if __name__ == '__main__':
     for phase in ('pretrain', 'finetune'):
-        users, tasks = prepare_data_for_training(phase, chronotype='morning_lark', users_per_chronotype=100)
+        # users, tasks = prepare_data_for_training(phase, chronotype='morning_lark', users_per_chronotype=100)
         # users, tasks = prepare_data_for_training(phase, chronotype='intermediate', users_per_chronotype=100)
-        # users, tasks = prepare_data_for_training(phase, chronotype='night_owl', users_per_chronotype=100)
+        users, tasks = prepare_data_for_training(phase, chronotype='night_owl', users_per_chronotype=100)
         run_ppo_training(phase, users, tasks)
         # choose_nsga_params(phase, users, tasks)

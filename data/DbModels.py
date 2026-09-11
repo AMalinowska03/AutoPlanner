@@ -20,7 +20,7 @@ class User(Base):
     work_end_time = Column(DateTime)
     is_training = Column(Boolean, default=False)
 
-    plan_tasks = relationship("PlanTask", back_populates="user")
+    # plan_tasks = relationship("PlanTask", back_populates="user")
 
 
 class Task(Base):
@@ -37,73 +37,40 @@ class Task(Base):
     injection_time = Column(DateTime, nullable=True)  # by that time disruptor is supposed to be added to plan
     is_break = Column(Boolean, default=False)
 
-    plan_tasks = relationship("PlanTask", back_populates="task")
+
+class ExperimentMetric(Base):
+    __tablename__ = 'experiment_metric'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    experiment_type = Column(Enum('online', 'disruptions'))  # 'online' or 'disruptions'
+    algorithm = Column(Enum('ppo', 'nsga', 'baseline'))  # 'baseline', 'ppo', 'nsga'
+    user_id = Column(Integer, index=True)
+    phase_order = Column(Integer, index=True)
+    group_id = Column(Integer)
+
+    total_replans = Column(Integer)
+    days_used = Column(Integer)
+    avg_generating_time = Column(Float)
+
+    monthly_completion_score = Column(Float)
+    daily_completion_score = Column(Float)
+    time_estimation_error = Column(Float)
+    delay_score = Column(Float)
+    energy_score = Column(Float)
+    switch_efficiency = Column(Float)
+    instability = Column(Float)
 
 
-class Plan(Base):
-    __tablename__ = 'plan'
-    id = Column(Integer, primary_key=True)
-    algorithm = Column(Enum("ppo", "nsga", "baseline"))  # for filtering in data collection
-    group = Column(Integer)  # for same month and user to group all generations for later measuring
-    generation = Column(Integer)  # for same month and user, increased with each needed re-plan
-    generating_time = Column(Float)  # how long this plan version was generated for
-    disruption_time = Column(DateTime)  # how long this plan version was generated for
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)  # how long this plan version was generated for
-    phase = Column(Enum("online", "disruptions"), nullable=False)  # how long this plan version was generated for
-    phase_order = Column(Integer, nullable=False)  # how long this plan version was generated for
+class BreakTask:
+    def __init__(self, duration_hours: float):
+        self.id = -1
+        self.name = "Break"
+        self.workhours = duration_hours
+        self.priority = "low"
+        self.type = "break"
+        self.deadline = None
+        self.is_break = True
 
-
-    plan_tasks = relationship(
-        "PlanTask",
-        back_populates="plan",
-        primaryjoin="PlanTask.plan_id == Plan.id",
-        collection_class=attribute_keyed_dict("task_id")
-    )
-
-
-class PlanTask(Base):
-    __tablename__ = 'plan_task'
-    id = Column(Integer, primary_key=True)
-    plan_id = Column(Integer, ForeignKey('plan.id'))
-    user_id = Column(Integer, ForeignKey('user.id'))
-    task_id = Column(Integer, ForeignKey('task.id'))
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
-
-    plan = relationship(
-        "Plan",
-        back_populates="plan_tasks",
-        primaryjoin="PlanTask.plan_id == Plan.id",
-    )
-    task = relationship(
-        "Task",
-        back_populates="plan_tasks",
-        primaryjoin="PlanTask.task_id == Task.id",
-    )
-    user = relationship(
-        "User",
-        back_populates="plan_tasks",
-        primaryjoin="PlanTask.user_id == User.id",
-    )
-    execution = relationship(
-        "Execution",
-        back_populates="plan_task",
-    )
-
-
-class Execution(Base):
-    __tablename__ = 'execution'
-    id = Column(Integer, primary_key=True)
-    plan_task_id = Column(Integer, ForeignKey('plan_task.id'))
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
-    energy = Column(Float)
-
-    plan_task = relationship(
-        "PlanTask",
-        back_populates="execution",
-        primaryjoin="PlanTask.id == Execution.plan_task_id",
-    )
 
 
 def init_db():
