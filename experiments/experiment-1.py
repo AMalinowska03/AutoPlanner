@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from data.DbModels import User, Task
 from data.database import SessionLocal
@@ -31,9 +32,9 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
 
 
 def run_experiment():
+    group_id = 0
     users, tasks = prepare_data_for_online_phase('online')
     for algorithm in ['ppo', 'nsga', 'baseline']:
-        planner = None
         for user in users:
             if algorithm == 'baseline':
                 planner = BaselinePlanner(user)
@@ -41,3 +42,13 @@ def run_experiment():
                 planner = PPOPlanner(user)
             elif algorithm == 'nsga':
                 planner = NSGAPlanner(user)
+            else:
+                raise ValueError(f"Unavailable algorithm: '{algorithm}'")
+
+            start_date = datetime(year=2027, month=1, day=4)
+            for phase_order, month_tasks in tasks:
+                res = planner.plan_and_simulate_month(user=user, month_tasks=month_tasks, group_id=group_id,
+                                                      phase="online", phase_order=phase_order, start_date=start_date)
+
+                # save res to file to plot later
+                start_date = start_date + timedelta(days=28)

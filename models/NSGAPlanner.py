@@ -36,7 +36,7 @@ PARETO_SELECTION_WEIGHTS = np.array([
     1.5,  # health
 ])
 
-PRIO_WEIGHTS = {"low": 1.0, "medium": 2.0, "high": 4.0, "urgent": 8.0}
+PRIO_WEIGHTS = {"low": 0.5, "medium": 1.0, "high": 3.0, "urgent": 6.0}
 
 class PlanOptimizationProblem(Problem):
     def __init__(self, tasks, previous_plan, start_date, sim_day, sim_time,
@@ -115,7 +115,7 @@ class PlanOptimizationProblem(Problem):
                 break_duration = (5.0 / 60.0) + (break_gene - 0.2) / 0.8 * 0.75
 
                 # if positive will be < 0
-                obj_eff += self._calculate_break_reward(current_time, break_duration)
+                obj_eff += self._calculate_break_reward(current_time, time_since_break, break_duration)
 
                 current_time += break_duration
                 total_break_time += break_duration
@@ -166,17 +166,33 @@ class PlanOptimizationProblem(Problem):
         horizon_violation = max_used_day - (self.total_days - 1)
         return obj_deadline, obj_eff, obj_disrupt, obj_health, horizon_violation
 
-    def _calculate_break_reward(self, current_time, break_duration):
+    def _calculate_break_reward(self, current_time, time_since_break,  break_duration: float):
         break_reward = 0.0
-        if current_time == self.work_start_hour:
-            break_reward += break_duration * PENALTY_WEIGHT_EFFICIENCY
+
+        # penalty (beginning/end of day break, too many/few breaks)
+        if current_time <= self.work_start_hour + 0.1:
+            break_reward += break_duration * PENALTY_WEIGHT_EFFICIENCY * 2.0
         if current_time + break_duration >= self.work_end_hour:
-            break_reward += break_duration * (PENALTY_WEIGHT_EFFICIENCY + 1)
-        if 11.30 < current_time < 14.5 and 0.25 < break_duration < 0.75:
-            break_reward -= break_duration * PENALTY_WEIGHT_EFFICIENCY  # reward minimizes objective
+            break_reward += break_duration * PENALTY_WEIGHT_EFFICIENCY * 2.0
+
+        # break distribution
+        if time_since_break >= 2.0:
+            # greater the reward, the longer last break was
+            break_reward -= (time_since_break * PENALTY_WEIGHT_HEALTH)
+            # preferable short breaks except for lunch
+            if break_duration > 0.35 and not (11.5 < current_time < 14.5):
+                break_reward += (break_duration - 0.35) * PENALTY_WEIGHT_EFFICIENCY * 2.0
+        elif time_since_break < 1.0:
+            # penalty for stacking breaks
+            break_reward += 2.0
+
+        # reward (break for eating midday)
+        if 11.5 < current_time < 14.5 and 0.25 <= break_duration <= 0.75:
+            break_reward -= break_duration * PENALTY_WEIGHT_HEALTH
+
         return break_reward
 
-    def _calculate_deadline_reward(self, current_day, task: Task, end_time: float):
+    def _calculate_deadline_reward(self, current_day: int, task: Task, end_time: float):
         deadline_reward = 0.0
         end_date = sim_time_to_datetime(self.start_date, current_day, end_time)
         tardiness = (end_date - task.deadline).total_seconds() / 3600.0
@@ -184,21 +200,25 @@ class PlanOptimizationProblem(Problem):
         w_prio = PRIO_WEIGHTS.get(task.priority, 1.0)
 
         if tardiness > 0:
+            tardiness_days = (tardiness / 24.0)  # if we are late 7 days it's as bad as beyond that
             # missing deadline is more crucial to correct than rewarding for doing task on time
-            deadline_reward += (1.5 * PENALTY_WEIGHT_DEADLINE + tardiness * 2.0) * w_prio
+            deadline_reward += (1.0 + tardiness_days) * PENALTY_WEIGHT_DEADLINE * w_prio
         else:
             deadline_reward -= PENALTY_WEIGHT_DEADLINE * w_prio
         return deadline_reward
 
-    def _calculate_time_allotment_reward(self, task: Task, planned_duration, actual_duration: float):
+    def _calculate_time_allotment_reward(self, task: Task, action_time, actual_duration: float):
         time_reward = 0.0
-        # penalty (task execution time exceeded/finished early - exponential, disruption, overtime)
-        planning_time_difference = actual_duration - planned_duration
+        time_multiplier = TIME_MULTIPLIERS[action_time % len(TIME_MULTIPLIERS)]
+        planned_duration = time_multiplier * float(task.workhours)
+        # penalty (task execution time exceeded/finished early - disruption, overtime)
+        # we cap it at -8h +8h - standard work day length, already badly allocated, prevents reward from exploding
+        planning_time_difference = max(-8.0, min(8.0, actual_duration - planned_duration))
         # 15min grace period
         if -0.25 < planning_time_difference < 0.25:
-            time_reward -= 5.0 / (1.0 + abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY)
+            time_reward -= 1.0 / (1.0 + abs(planning_time_difference) * PENALTY_WEIGHT_EFFICIENCY)
         elif planning_time_difference > 0.25:
-            # the more time was actually needed to complete the task the more penalty exponentially
+            # the more time was actually needed to complete the task the more penalty
             time_reward += abs(planning_time_difference) * (2 * PENALTY_WEIGHT_EFFICIENCY)
         elif planning_time_difference < -0.25:  # finished before time
             # we could save plan time here but giving a bit more time is always better than not giving enough
@@ -232,18 +252,20 @@ class PlanOptimizationProblem(Problem):
         # overtime penalty - the longer task takes to end the bigger penalty
         overtime_reward = 0.0
         overtime = end_time - self.work_end_hour
-        if overtime > 0.0:
+        if overtime > 2.0:
+            overtime_reward += overtime * PENALTY_WEIGHT_HEALTH * 3
+        elif overtime > 0.0:
             overtime_reward += overtime * PENALTY_WEIGHT_HEALTH
         return overtime_reward
 
-    def _calculate_end_day_break_reward(self, total_break_time_today: float, current_time_in_day: float):
+    def _calculate_end_day_break_reward(self, total_break_time, current_time):
         break_reward = 0.0
-        worked_today = max(0.1, current_time_in_day - self.work_start_hour)
-        break_pct = total_break_time_today / worked_today
+        worked_today = max(0.1, current_time - self.work_start_hour)
+        break_pct = total_break_time / worked_today
         if 0.10 <= break_pct <= 0.15:
             break_reward -= 2 * PENALTY_WEIGHT_HEALTH
         elif break_pct < 0.10:
-            break_reward += PENALTY_WEIGHT_HEALTH
+            break_reward += PENALTY_WEIGHT_HEALTH*(0.9 - break_pct)
         else:
             break_reward += 5 * PENALTY_WEIGHT_HEALTH * (break_pct - 0.15)
         return break_reward

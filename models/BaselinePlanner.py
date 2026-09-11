@@ -10,13 +10,14 @@ from simulation.UserSimulator import UserSimulator
 
 DisruptorsMap = dict[int, list[tuple[float, Task]]]
 
+
 class BaselinePlanner:
     def __init__(self, user: User):
         self.user = user
         self.work_start_hour, self.work_end_hour = get_user_work_hours(user)
         self.repository = None
 
-    def plan_and_simulate_month(self, month_tasks: List[Task], group_id: int, disruptors_map: Optional[DisruptorsMap] = None,
+    def plan_and_simulate_month(self, user: User, month_tasks: List[Task], group_id: int, disruptors_map: Optional[DisruptorsMap] = None,
                                 phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
         disr_map = copy.deepcopy(disruptors_map)
         self.repository = Repository(self.user, phase, phase_order, start_date)

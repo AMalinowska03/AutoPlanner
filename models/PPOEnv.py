@@ -244,8 +244,8 @@ class PPOPlannerEnv(gym.Env):
                 if task.deadline is None:
                     norm_deadline = 1.0
                 else:
-                    hours_left = max(0.0, (task.deadline - current_date).total_seconds() / 3600.0)
-                    norm_deadline = min(1.0, hours_left / total_calendar_hours)
+                    hours_left = (task.deadline - current_date).total_seconds() / 3600.0
+                    norm_deadline = max(-1.0, min(1.0, hours_left / total_calendar_hours))
                 prev_record = next((item for item in self.previous_plan if item.get("task_id") == task.id), None)
                 if prev_record:
                     prev_start = prev_record.get("_abs_start")
@@ -397,10 +397,13 @@ class PPOPlannerEnv(gym.Env):
         # break distribution
         if self.time_since_last_break >= 2.0:
             # greater the reward, the longer last break was
-            break_reward += (self.time_since_last_break * PENALTY_WEIGHT_HEALTH * break_duration)
+            break_reward += (self.time_since_last_break * PENALTY_WEIGHT_HEALTH)
+            # preferable short breaks except for lunch
+            if break_duration > 0.35 and not (11.5 < self.current_time_in_day < 14.5):
+                break_reward -= (break_duration - 0.35) * PENALTY_WEIGHT_EFFICIENCY * 2.0
         elif self.time_since_last_break < 1.0:
             # penalty for stacking breaks
-            break_reward -= break_duration * PENALTY_WEIGHT_EFFICIENCY * 3.0
+            break_reward -= 2.0
 
         # reward (break for eating midday)
         if 11.5 < self.current_time_in_day < 14.5 and 0.25 <= break_duration <= 0.75:
@@ -416,7 +419,7 @@ class PPOPlannerEnv(gym.Env):
         w_prio = PRIO_WEIGHTS.get(task.priority, 1.0)
 
         if tardiness > 0:
-            tardiness_days = (tardiness / 24.0)  # if we are late 5 days it's as bad as beyond that
+            tardiness_days = (tardiness / 24.0)  # if we are late 7 days it's as bad as beyond that
             # missing deadline is more crucial to correct than rewarding for doing task on time
             deadline_reward -= (1.0 + tardiness_days) * PENALTY_WEIGHT_DEADLINE * w_prio
         else:
@@ -481,7 +484,7 @@ class PPOPlannerEnv(gym.Env):
         if 0.10 <= break_pct <= 0.15:
             break_reward += 2 * PENALTY_WEIGHT_HEALTH
         elif break_pct < 0.10:
-            break_reward -= PENALTY_WEIGHT_HEALTH
+            break_reward -= PENALTY_WEIGHT_HEALTH*(0.9 - break_pct)
         else:
             break_reward -= 5 * PENALTY_WEIGHT_HEALTH * (break_pct - 0.15)
         return break_reward
