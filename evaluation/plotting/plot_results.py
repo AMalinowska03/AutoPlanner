@@ -316,4 +316,5 @@ if __name__ == "__main__":
     print(f"Sample users: {sample_users}")
 
     generate_all_plots(data, sample_users, output_dir="../results")
-    export_all_tables_to_latex(data, output_path="../results/tabele_wynikow.tex")
+    export_all_tables_to_latex(data, phase_name="online", output_dir="../results")
+    export_all_tables_to_latex(data, phase_name="disruptions", output_dir="../results")

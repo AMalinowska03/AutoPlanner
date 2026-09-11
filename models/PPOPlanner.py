@@ -21,7 +21,8 @@ DisruptorsMap = dict[int, list[tuple[float, Task]]]
 class PPOPlanner:
     def __init__(self, user: Optional[User] = None):
         self.user = user
-        self.storage_path = "db/models_store.db"
+        self.base_storage_path = "db/models_store.db"
+        self.storage_path = f"db/models_store_u{user.id}.db" if user else self.base_storage_path
         os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
         self.repository = None
 
@@ -100,15 +101,24 @@ class PPOPlanner:
         disr_map = copy.deepcopy(disruptors_map)
         # self.repository = Repository(user, phase, phase_order, start_date)
         model_key = f"ppo_user_{user.id}_active"
-        with shelve.open(self.storage_path) as db:
-            if model_key not in db:
-                base_key = f"ppo_user_{user.id}_finetuned"
-                if base_key not in db:
-                    raise ValueError(f"No finetuned model for user {user.id}. Run finetuning first.")
-                db[model_key] = db[base_key]
-            buffer = io.BytesIO(db[model_key])
-            ac_model = torch.load(buffer, map_location=device, weights_only=False)
-            ac_model.eval()
+        model_bytes = None
+        with shelve.open(self.storage_path) as user_db:
+            if model_key in user_db:
+                model_bytes = user_db[model_key]
+        if model_bytes is None:
+            with shelve.open(self.base_storage_path) as db:
+                if model_key not in db:
+                    base_key = f"ppo_user_{user.id}_finetuned"
+                    if base_key not in db:
+                        raise ValueError(f"No finetuned model for user {user.id}. Run finetuning first.")
+                    model_bytes = db[base_key]
+
+            with shelve.open(self.storage_path) as user_db:
+                user_db[model_key] = model_bytes
+
+        buffer = io.BytesIO(model_bytes)
+        ac_model = torch.load(buffer, map_location=device, weights_only=False)
+        ac_model.eval()
 
         training_scenarios = []
         # environment used only to plan, not simulate
@@ -141,12 +151,13 @@ class PPOPlanner:
                 generating_time=gen_time,
                 disruption_time=disruption_occurrence_time
             )
+            disruption_occurrence_time = None
             # plan_record = self.repository.create_plan_records(
             #     algorithm="ppo", planned_tasks=current_plan, group_id=group_id,
             #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
             # )
 
-            print(f"PPO ------ Simulating ------")
+            print(f"\n\nPPO ------ Simulating ------")
             replan_needed = False
 
             # go through all planned tasks until they are possible to be completed
@@ -225,7 +236,10 @@ class PPOPlanner:
                             "start_energy": simulator.start_energy,
                         })
                         break
-                disruption_occurrence_time = None
+                    else:
+                        disruption_occurrence_time = None
+                else:
+                    disruption_occurrence_time = None
 
                 current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                         minutes=int((sim_time % 1) * 60))
@@ -306,8 +320,13 @@ class PPOPlanner:
 
             # if we moved through tasks without re-planning we finish month
             if not replan_needed:
-                remaining_to_plan = []
-                print(f"PPO ------ Simulation END ------")
+                if not remaining_to_plan:
+                    print(f"PPO ------ All tasks completed on day {sim_day}! Finishing month early. ------")
+                    print(f"PPO ------ Simulation END ------ \n\n")
+                    break
+                else:
+                    remaining_to_plan = []
+                    print(f"PPO ------ Simulation END ------\n\n")
             else:
                 current_generation += 1
 
@@ -427,11 +446,12 @@ class PPOPlanner:
 
         # update the active model
         loaded_model = torch.load(f"./PPOGenerated/{model_key}/pyt_save/model.pt", map_location=device, weights_only=False)
-        self._save_to_storage(model_key, loaded_model)
+        self._save_to_storage(model_key, loaded_model, True)
         print(f"PPO: ------ Finetune END ------")
 
-    def _save_to_storage(self, key: str, model):
+    def _save_to_storage(self, key: str, model, finetune_on_history: bool = False):
         buffer = io.BytesIO()
         torch.save(model, buffer)
-        with shelve.open(self.storage_path) as db:
+        path = self.storage_path if finetune_on_history else self.base_storage_path
+        with shelve.open(path) as db:
             db[key] = buffer.getvalue()

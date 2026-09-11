@@ -358,11 +358,12 @@ class PPOPlannerEnv(gym.Env):
                 # print(f" --- end day break reward: {reward}")
             self._advance_to_next_day()
 
-        if len(self.remaining_tasks) == 0:
+        if len(self.remaining_tasks) == 0 and len(self.backlog) == 0:
             if self.planning_mode is False:
-                reward += 2.0
-                # print(f" --- all tasks planned reward: {reward}")
+                days_saved = max(0, self.total_days - self.current_day)
+                reward += 10.0 + (days_saved * 2.0)
             terminated = True
+
         elif self.current_day >= self.total_days:
             if self.planning_mode is False:
                 for t in self.remaining_tasks:

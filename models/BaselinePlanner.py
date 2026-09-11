@@ -47,6 +47,7 @@ class BaselinePlanner:
                 generating_time=gen_time,
                 disruption_time=disruption_occurrence_time
             )
+            disruption_occurrence_time = None
             # plan_record = self.repository.create_plan_records(
             #     algorithm="baseline", planned_tasks=current_plan, group_id=group_id,
             #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
@@ -122,7 +123,10 @@ class BaselinePlanner:
                         replan_needed = True
                         print(f"Base ------ Disruptor occurred: RE-PLANNING ------")
                         break
-                disruption_occurrence_time = None
+                    else:
+                        disruption_occurrence_time = None
+                else:
+                    disruption_occurrence_time = None
 
                 current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                         minutes=int((sim_time % 1) * 60))
@@ -165,11 +169,15 @@ class BaselinePlanner:
 
             # if we moved through tasks without re-planning we finish month
             if not replan_needed:
-                remaining_to_plan = []
-                print(f"Base ------ Simulation END ------")
+                if not remaining_to_plan:
+                    print(f"Baseline ------ All tasks completed on day {sim_day}! Finishing month early. ------")
+                    print(f"Baseline ------ Simulation END ------ \n\n")
+                    break
+                else:
+                    remaining_to_plan = []
+                    print(f"Baseline ------ Simulation END ------\n\n")
             else:
                 current_generation += 1
-
 
         return {
             "total_replans": current_generation,

@@ -474,6 +474,7 @@ class NSGAPlanner:
 
         # load user params nor NSGA
         self.nsga_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
+
         with shelve.open(self.storage_path) as db:
             if "base_nsga_params" in db:
                 self.nsga_params = db["base_nsga_params"]
@@ -503,12 +504,13 @@ class NSGAPlanner:
                 generating_time=gen_time,
                 disruption_time=disruption_occurrence_time
             )
+            disruption_occurrence_time = None
             # plan_record = self.repository.create_plan_records(
             #     algorithm="nsga", planned_tasks=current_plan, group_id=group_id,
             #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
             # )
 
-            print(f"NSGA ------ Simulating ------")
+            print(f"\n\nNSGA ------ Simulating ------")
             replan_needed = False
 
             # go through all planned tasks until they are possible to be completed
@@ -575,7 +577,10 @@ class NSGAPlanner:
                         replan_needed = True
                         print(f"NSGA ------ Disruptor occurred: RE-PLANNING ------")
                         break
-                disruption_occurrence_time = None
+                    else:
+                        disruption_occurrence_time = None
+                else:
+                    disruption_occurrence_time = None
 
                 current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                         minutes=int((sim_time % 1) * 60))
@@ -619,8 +624,13 @@ class NSGAPlanner:
 
             # if we moved through tasks without re-planning we finish month
             if not replan_needed:
-                remaining_to_plan = []
-                print(f"NSGA ------ Simulation END ------")
+                if not remaining_to_plan:
+                    print(f"NSGA ------ All tasks completed on day {sim_day}! Finishing month early. ------")
+                    print(f"NSGA ------ Simulation END ------ \n\n")
+                    break
+                else:
+                    remaining_to_plan = []
+                    print(f"NSGA ------ Simulation END ------\n\n")
             else:
                 current_generation += 1
 

@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 DATABASE_URL = "mysql+pymysql://root@localhost:3306/auto_planner"
 
 # Create the database engine
-engine = create_engine(DATABASE_URL, connect_args={
+engine = create_engine(DATABASE_URL, timeout=60.0, connect_args={
     "host": "localhost", "user": "root", "password": "", "database": "auto_planner"
 })
 

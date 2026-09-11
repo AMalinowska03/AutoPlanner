@@ -1,5 +1,8 @@
+import json
 from collections import defaultdict
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Tuple, Any, Dict
 
 from data.DbHelper import build_disruptors_map, MonthSimulationSession
 from data.DbModels import User, Task
@@ -9,12 +12,25 @@ from models.NSGAPlanner import NSGAPlanner
 from models.PPOPlanner import PPOPlanner
 
 
-def prepare_data_for_disruptions_phase(phase: str) -> tuple[list[User], dict[int, list[Task]]]:
+def load_finished_user_ids(file_path: str = "finished_user_ids.json") -> list[int]:
+    """Load user ids from JSON."""
+    path = Path(file_path)
+    if not path.exists():
+        print(f"File {file_path} not existent.")
+        return []
+
+    with open(path, "r", encoding="utf-8") as f:
+        user_ids: list[int] = json.load(f)
+
+    return user_ids
+
+
+def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list], dict[int, list]]:
     if phase != 'disruptions':
         raise ValueError(f"Unavailable phase: '{phase}'. possible values: 'disruptions'.")
 
     with SessionLocal() as session:
-        user_ids = []
+        user_ids = load_finished_user_ids()
         users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
 
         tasks_records = (
@@ -71,6 +87,6 @@ def run_experiment():
                 start_date = start_date + timedelta(days=28)
                 group_id += 1
 
-            # plot to files for user
 
-        # plot to files per algorithm
+if __name__ == '__main__':
+    run_experiment()

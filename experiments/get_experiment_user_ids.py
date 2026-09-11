@@ -1,10 +1,11 @@
+import json
 import os
 import re
 from pathlib import Path
 
-
 # Ścieżka do katalogu
 base_dir = Path("PPOGenerated")
+output_file = Path("finished_user_ids.json")
 
 # 1. Znalezienie folderów i wyciągnięcie ID
 pattern = re.compile(r"^finetune_u(\d+)$")
@@ -21,3 +22,5 @@ if base_dir.exists() and base_dir.is_dir():
 finished_user_ids.sort()
 print(f"Znalezione ID ({len(finished_user_ids)}): \n{finished_user_ids}")
 
+with open(output_file, "w", encoding="utf-8") as f:
+    json.dump(finished_user_ids, f, indent=4)

@@ -20,8 +20,6 @@ class User(Base):
     work_end_time = Column(DateTime)
     is_training = Column(Boolean, default=False)
 
-    # plan_tasks = relationship("PlanTask", back_populates="user")
-
 
 class Task(Base):
     __tablename__ = 'task'
@@ -42,8 +40,8 @@ class ExperimentMetric(Base):
     __tablename__ = 'experiment_metric'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    experiment_type = Column(Enum('online', 'disruptions'))  # 'online' or 'disruptions'
-    algorithm = Column(Enum('ppo', 'nsga', 'baseline'))  # 'baseline', 'ppo', 'nsga'
+    experiment_type = Column(Enum('online', 'disruptions'))
+    algorithm = Column(Enum('ppo', 'nsga', 'baseline'))
     user_id = Column(Integer, index=True)
     phase_order = Column(Integer, index=True)
     group_id = Column(Integer)
@@ -70,7 +68,6 @@ class BreakTask:
         self.type = "break"
         self.deadline = None
         self.is_break = True
-
 
 
 def init_db():
