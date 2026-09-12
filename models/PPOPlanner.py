@@ -8,7 +8,7 @@ from typing import Optional, List
 
 import torch
 
-from data.DbHelper import MonthSimulationSession
+from data.DbHelper import MonthSimulationSession, sort_tasks_by_deadline_and_priority
 # from data.DbHelper import Repository
 from data.DbModels import User, Task, BreakTask
 from simulation.UserSimulator import UserSimulator
@@ -129,6 +129,7 @@ class PPOPlanner:
 
         current_generation = 0
         remaining_to_plan = copy.deepcopy(month_tasks)
+        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
         previous_plan_state = []
 
         sim_day = 0
@@ -215,6 +216,7 @@ class PPOPlanner:
                     if disruptors_appeared:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         first_disruption_time = min(disrupt_time for disrupt_time, _ in disruptors_appeared)
                         dh = int(first_disruption_time)
                         dm = int((first_disruption_time - dh) * 60)
@@ -252,6 +254,7 @@ class PPOPlanner:
                     # re-plan if next task is in next day, and we still have over 0.5h of work day
                     if next_start_dt.date() > current_sim_dt.date() and raw_env.work_end_hour - sim_time >= 0.5:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         previous_plan_state = copy.deepcopy(raw_env.current_plan)
                         replan_needed = True
                         print(f"PPO ------ Have time left: RE-PLANNING ------")
@@ -275,6 +278,7 @@ class PPOPlanner:
                     sim_day += 1
                     if sim_day >= raw_env.total_days:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         if remaining_to_plan:
                             training_scenarios.append({
                                 "day": sim_day,
@@ -301,6 +305,7 @@ class PPOPlanner:
                         next_start_dt = next_item["start_time"]
                         if next_start_dt.date() <= current_sim_dt.date():
                             remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                            remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                             previous_plan_state = copy.deepcopy(raw_env.current_plan)
                             replan_needed = True
                             print(f"PPO ------ Tasks left from day: RE-PLANNING ------")
@@ -418,6 +423,12 @@ class PPOPlanner:
 
     def _finetune_on_history(self, user: User, scenarios: list, start_day: datetime, epochs: int = 5):
         print(f"PPO: Finetuning after month on {len(scenarios)} performed scenarios...")
+        # W models/PPOPlanner.py wewnątrz _finetune_on_history:
+        print(f"\n--- [DIAGNOSTYKA] Scenariusze do finetuningu ({len(scenarios)} sztuk) ---")
+        for idx, sc in enumerate(scenarios):
+            print(
+                f"Scenariusz {idx}: Dzień {sc['day']}, Godzina {sc['time']:.2f}, Zadań do zrobienia: {len(sc['remaining_tasks'])}")
+        print("-------------------------------------------------------------------\n")
         model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
             buffer = io.BytesIO(db[model_key])
@@ -439,8 +450,8 @@ class PPOPlanner:
             ac_kwargs=dict(hidden_sizes=(128, 128)),
             steps_per_epoch=max(1000, len(scenarios) * 100),  # epoch length depending on scenarios count
             epochs=epochs,
-            pi_lr=1e-5,  # low learning rate to just adjust the model and not change drastically
-            vf_lr=5e-5,
+            pi_lr=1e-10,  # low learning rate to just adjust the model and not change drastically
+            vf_lr=5e-10,
             logger_kwargs=dict(output_dir=f"./PPOGenerated/{model_key}", exp_name=f"{model_key}")
         )
 

@@ -18,7 +18,8 @@ from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.core.problem import Problem
 
-from data.DbHelper import get_user_work_hours, sim_time_to_datetime, MonthSimulationSession
+from data.DbHelper import get_user_work_hours, sim_time_to_datetime, MonthSimulationSession, \
+    sort_tasks_by_deadline_and_priority
 from data.DbModels import User, Task, BreakTask
 from simulation.UserSimulator import UserSimulator, calculate_switch_lag
 
@@ -482,6 +483,7 @@ class NSGAPlanner:
         simulator = UserSimulator(user)
         current_generation = 0
         remaining_to_plan = copy.deepcopy(month_tasks)
+        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
         previous_plan_state = []
 
         sim_day = 0
@@ -568,6 +570,7 @@ class NSGAPlanner:
                     if disruptors_appeared:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         first_disruption_time = min(disrupt_time for disrupt_time, _ in disruptors_appeared)
                         dh = int(first_disruption_time)
                         dm = int((first_disruption_time - dh) * 60)
@@ -593,6 +596,7 @@ class NSGAPlanner:
                     # re-plan if next task is in next day, and we still have over 0.5h of work day
                     if next_start_dt.date() > current_sim_dt.date() and work_end_hour - sim_time >= 0.5:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         previous_plan_state = copy.deepcopy(current_plan)
                         replan_needed = True
                         print(f"NSGA ------ Have time left: RE-PLANNING ------")
@@ -617,6 +621,7 @@ class NSGAPlanner:
                         next_start_dt = next_item["start_time"]
                         if next_start_dt.date() <= current_sim_dt.date():
                             remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                            remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                             previous_plan_state = copy.deepcopy(current_plan)
                             replan_needed = True
                             print(f"NSGA ------ Tasks left from day: RE-PLANNING ------")

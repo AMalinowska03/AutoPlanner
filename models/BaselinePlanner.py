@@ -4,7 +4,8 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from data.DbHelper import get_user_work_hours, MonthSimulationSession  # , Repository
+from data.DbHelper import get_user_work_hours, MonthSimulationSession, \
+    sort_tasks_by_deadline_and_priority  # , Repository
 from data.DbModels import User, Task, BreakTask
 from simulation.UserSimulator import UserSimulator
 
@@ -25,7 +26,7 @@ class BaselinePlanner:
         simulator = UserSimulator(self.user)
         current_generation = 0
         remaining_to_plan = copy.deepcopy(month_tasks)
-
+        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
         sim_day = 0
         sim_time = self.work_start_hour
 
@@ -113,6 +114,7 @@ class BaselinePlanner:
                     if disruptors_appeared:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         first_disruption_time = min(disrupt_time for disrupt_time, _ in disruptors_appeared)
                         dh = int(first_disruption_time)
                         dm = int((first_disruption_time - dh) * 60)
@@ -139,6 +141,7 @@ class BaselinePlanner:
                     # re-plan if next task is in next day, and we still have over 0.5h of work day
                     if next_start_dt.date() > current_sim_dt.date() and self.work_end_hour - sim_time >= 0.5:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                        remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         replan_needed = True
                         print(f"Base ------ Have time left: RE-PLANNING ------")
                         break
@@ -162,6 +165,7 @@ class BaselinePlanner:
                         next_start_dt = next_item["start_time"]
                         if next_start_dt.date() <= current_sim_dt.date():
                             remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
+                            remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                             previous_plan_state = copy.deepcopy(current_plan)
                             replan_needed = True
                             print(f"Base ------ Tasks left from day: RE-PLANNING ------")

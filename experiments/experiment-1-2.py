@@ -31,11 +31,11 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
 
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[50:100])).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[25:50])).all()
 
         tasks_records = (
             session.query(Task)
-            .filter(Task.phase_order <= 12)  # only from a year
+            .filter(Task.phase_order <= 12, Task.phase == phase)  # only from a year
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )

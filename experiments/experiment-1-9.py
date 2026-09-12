@@ -31,7 +31,7 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
 
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[:1])).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[200:225])).all()
 
         tasks_records = (
             session.query(Task)

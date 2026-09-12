@@ -186,3 +186,19 @@ def build_disruptors_map(disruptor_tasks: list[Task], start_date: datetime) -> D
         )
 
     return disruptions_map
+
+
+PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def sort_tasks_by_deadline_and_priority(tasks: list[Task]) -> list[Task]:
+    """
+    sort tasks by deadline and priority
+    """
+    return sorted(
+        tasks,
+        key=lambda t: (
+            t.deadline if t.deadline is not None else datetime.max,
+            PRIORITY_ORDER.get(t.priority, 4)
+        )
+    )
