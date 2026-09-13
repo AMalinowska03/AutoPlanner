@@ -1,5 +1,7 @@
 from typing import List, Dict, Any
 import math
+
+from data.DbHelper import get_user_work_hours
 from simulation.UserSimulator import CHRONOTYPES, SKILL_ATTR_MAP, SWITCH_MATRIX, calculate_switch_lag
 from collections import defaultdict
 from data.DbModels import User
@@ -203,6 +205,85 @@ def context_switch_score(executed_tasks: List[Dict[str, Any]]) -> dict[str, floa
         "total_switch_hours": round(total_switch_hours, 4),
         "avg_daily_switch_hours": round(avg_daily_switch, 4),
         "efficiency_ratio": round(efficiency_ratio, 4)
+    }
+
+
+def break_distribution_score(executed_tasks: List[Dict[str, Any]], user: User) -> Dict[str, float]:
+    """
+    Break statistics: summary of time, count of breaks,
+    how many breaks compared to work time and long stretch without break penalty (>3.5h)
+    """
+    if not executed_tasks:
+        return {"break_count": 0, "total_break_hours": 0.0, "break_ratio": 0.0, "long_stretch_penalty": 0.0}
+
+    tasks_by_day = defaultdict(list)
+    for exc in executed_tasks:
+        tasks_by_day[exc["actual_start"].date()].append(exc)
+
+    total_work_sec = 0.0
+    total_break_sec = 0.0
+    break_count = 0
+    long_stretch_penalty = 0.0
+
+    for day, day_tasks in tasks_by_day.items():
+        day_tasks.sort(key=lambda x: x["actual_start"])
+        time_since_last_break = 0.0
+
+        for exc in day_tasks:
+            is_break = getattr(exc["task"], "is_break", False)
+            dur_sec = exc["actual_duration_sec"]
+
+            if is_break:
+                total_break_sec += dur_sec
+                break_count += 1
+                time_since_last_break = 0.0
+            else:
+                total_work_sec += dur_sec
+                dur_hours = dur_sec / 3600.0
+                time_since_last_break += dur_hours
+                # Ergonomia: praca ciągła powyżej 3.5h bez odpoczynku
+                if time_since_last_break > 3.5:
+                    long_stretch_penalty += (time_since_last_break - 3.5)
+
+    total_work_hours = total_work_sec / 3600.0
+    total_break_hours = total_break_sec / 3600.0
+    break_ratio = (total_break_hours / max(0.1, total_work_hours)) * 100.0
+
+    return {
+        "break_count": break_count,
+        "total_break_hours": round(total_break_hours, 2),
+        "break_ratio": round(break_ratio, 2),
+        "long_stretch_penalty": round(long_stretch_penalty, 2)
+    }
+
+
+def overtime_score(executed_tasks: List[Dict[str, Any]], user: User) -> Dict[str, float]:
+    """
+    Summary of overtime work as well as average daily overtime and count of overtime days
+    """
+    _, work_end_hour = get_user_work_hours(user)
+
+    tasks_by_day = defaultdict(list)
+    for exc in executed_tasks:
+        tasks_by_day[exc["actual_start"].date()].append(exc)
+
+    total_overtime_hours = 0.0
+    days_with_overtime = 0
+
+    for day, day_tasks in tasks_by_day.items():
+        # Najpóźniejszy koniec zadania w danym dniu
+        latest_end_dt = max(t["actual_end"] for t in day_tasks)
+        day_end_hour = latest_end_dt.hour + latest_end_dt.minute / 60.0 + latest_end_dt.second / 3600.0
+
+        if day_end_hour > work_end_hour:
+            overtime = day_end_hour - work_end_hour
+            total_overtime_hours += overtime
+            days_with_overtime += 1
+
+    return {
+        "total_overtime_hours": round(total_overtime_hours, 2),
+        "avg_daily_overtime": round(total_overtime_hours / max(1, len(tasks_by_day)), 2),
+        "days_with_overtime": days_with_overtime
     }
 
 

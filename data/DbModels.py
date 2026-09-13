@@ -57,6 +57,11 @@ class ExperimentMetric(Base):
     energy_score = Column(Float)
     switch_efficiency = Column(Float)
     instability = Column(Float)
+    total_overtime_hours = Column(Float, default=0.0)
+    break_ratio = Column(Float, default=0.0)
+    break_count = Column(Integer, default=0)
+    long_stretch_penalty = Column(Float, default=0.0)
+    urgent_delayed_count = Column(Integer, default=0)
 
 
 class BreakTask:

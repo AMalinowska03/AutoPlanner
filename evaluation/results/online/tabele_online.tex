@@ -1,0 +1,51 @@
+% =========================================================================
+% WYNIKI DLA FAZY: ONLINE
+% =========================================================================
+
+% --- TABELA 1: Chronotyp x Algorytm (mean ± std) ---
+\begin{table}[htbp]
+\caption{Wyniki efektywności w rozbiciu na chronotypy (Faza: online)}
+\label{tab:online_by_chronotype}
+\begin{tabular}{llllllllllll}
+\toprule
+ &  & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni \\
+chronotype & algorithm &  &  &  &  &  &  &  &  &  &  \\
+\midrule
+intermediate & baseline & 0.871 $\pm$ 0.013 & 1.000 $\pm$ 0.002 & 0.840 $\pm$ 0.037 & 0.197 $\pm$ 0.025 & 6.361 $\pm$ 6.492 & 0.976 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 9.813 $\pm$ 2.641 & 18.138 $\pm$ 0.913 \\
+\cline{1-12}
+morning_lark & baseline & 0.750 $\pm$ 0.067 & 0.994 $\pm$ 0.016 & 0.874 $\pm$ 0.037 & 0.230 $\pm$ 0.028 & 11.706 $\pm$ 11.300 & 0.978 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 7.395 $\pm$ 3.461 & 19.017 $\pm$ 0.843 \\
+\cline{1-12}
+night_owl & baseline & 0.723 $\pm$ 0.066 & 0.996 $\pm$ 0.013 & 0.863 $\pm$ 0.037 & 0.132 $\pm$ 0.027 & 9.673 $\pm$ 9.802 & 0.975 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 7.233 $\pm$ 3.046 & 18.725 $\pm$ 0.906 \\
+\cline{1-12}
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- TABELA 2: Średnie globalne (mean ± std) ---
+\begin{table}[htbp]
+\caption{Globalne zestawienie parametrów algorytmów (Faza: online)}
+\label{tab:online_global_metrics}
+\begin{tabular}{lllllllllll}
+\toprule
+ & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni \\
+algorithm &  &  &  &  &  &  &  &  &  &  \\
+\midrule
+baseline & 0.781 $\pm$ 0.085 & 0.997 $\pm$ 0.012 & 0.859 $\pm$ 0.040 & 0.186 $\pm$ 0.048 & 9.247 $\pm$ 9.664 & 0.976 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 8.147 $\pm$ 3.285 & 18.627 $\pm$ 0.960 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- TABELA 3: Zysk/strata względna do Baseline (%) ---
+\begin{table}[htbp]
+\caption{Względna zmiana wskaźników jakościowych względem Baseline (Faza: online)}
+\label{tab:online_relative_gain}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Liczba przeplanowań & Wykorzystane dni \\
+algorithm &  &  &  &  &  &  &  &  &  \\
+\midrule
+\bottomrule
+\end{tabular}
+\end{table}

@@ -376,13 +376,13 @@ def create_disruptor_tasks(subphase_count, count, start_date, seed=999):
 
 def divide_tasks_to_phases(
         task_pool: pd.DataFrame,
-        min_sub_workhours: float = 90.0,
-        max_sub_workhours: float = 120.0,
-        target_base_task_count: int = 100
+        min_sub_workhours: float = 140.0,
+        max_sub_workhours: float = 180.0,
+        target_base_task_count: int = 110
 ) -> Tuple[List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame]]:
     """
     Divides task pool to experiment phases: pretrain (60%), finetune (20%), phase1 (10%), phase2 (10%)
-    Each phase is then divided into sub phases that collectively take between 90-120 workhours
+    Each phase is then divided into sub phases that collectively take between 1500-disr workhours
     keeping priority distribution and labeling phase_order to ake experiment organization easier
 
     :param task_pool: all tasks
@@ -465,6 +465,7 @@ def divide_tasks_to_phases(
                 new_t = by_prio[chosen_prio].pop(random.randrange(len(by_prio[chosen_prio])))
                 selected_batch.append(new_t)
                 total_hours += float(new_t["workhours"])
+                attempts += 1
 
             # take out tasks if they exceed max hours
             attempts = 0
@@ -474,6 +475,7 @@ def divide_tasks_to_phases(
                 dropped_t = selected_batch.pop(drop_idx)
                 by_prio[dropped_t["priority"]].append(dropped_t)
                 total_hours -= float(dropped_t["workhours"])
+                attempts += 1
 
             # when correct subset ready save it
             if total_hours >= min_sub_workhours:
@@ -513,7 +515,7 @@ def run_pipeline(global_seed=42):
     finetune_tasks_df, _ = generate_deadlines_for_phase(finetune_tasks_lists_df, "finetune", '2027-02-01', False, 101)
     phase1_tasks_df, disruptors_start_day = generate_deadlines_for_phase(phase1_tasks_lists_df, "online", '2027-01-04', shift_per_subphase=True, seed=102)
     phase2_tasks_df, _ = generate_deadlines_for_phase(phase2_tasks_lists_df, "disruptions", disruptors_start_day, shift_per_subphase=True, seed=103)
-    disruptor_tasks = create_disruptor_tasks(len(phase2_tasks_df), 10, disruptors_start_day, 103)
+    disruptor_tasks = create_disruptor_tasks(len(phase2_tasks_df), 5, disruptors_start_day, 103)
 
     print("Saving to SQLite...")
     try:

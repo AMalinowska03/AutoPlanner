@@ -37,16 +37,16 @@ class PPOPlanner:
             ac_kwargs=dict(hidden_sizes=(128, 128)),
             steps_per_epoch=2000,
             epochs=epochs,
-            pi_lr=3e-4,
-            vf_lr=1e-3,
-            target_kl=0.015,
+            pi_lr=1e-4,
+            vf_lr=5e-4,
+            target_kl=0.025,
             logger_kwargs=dict(output_dir="./PPOGenerated/pretrain", exp_name="pretrain")
         )
         # save model to NoSQL
         loaded_model = torch.load("./PPOGenerated/pretrain/pyt_save/model.pt", map_location=device, weights_only=False)
         self._save_to_storage("ppo_base_pretrained", loaded_model)
 
-    def finetune_user(self, user: User, finetune_tasks: dict, epochs: int = 30):
+    def finetune_user(self, user: User, finetune_tasks: dict, epochs: int = 15):
         import shelve, io
         base_model = None
         with shelve.open(self.storage_path) as db:
@@ -72,10 +72,13 @@ class PPOPlanner:
             env_fn=env_fn,
             actor_critic=pretrained_actor_critic,
             ac_kwargs=dict(hidden_sizes=(128, 128)),
-            steps_per_epoch=2000,
+            steps_per_epoch=1000,
             epochs=epochs,
             pi_lr=5e-5,
             vf_lr=2e-4,
+            target_kl=0.02,
+            train_pi_iters=40,
+            train_v_iters=40,
             logger_kwargs=dict(output_dir=f"./PPOGenerated/finetune_u{user.id}", exp_name=f"finetune_u{user.id}")
         )
         loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device, weights_only=False)
@@ -363,6 +366,7 @@ class PPOPlanner:
         obs = raw_env._get_obs()
 
         done = False
+        just_took_break = False
         while not done:
             with torch.no_grad():
                 obs_t = torch.as_tensor(obs, dtype=torch.float32, device=device)
@@ -371,19 +375,25 @@ class PPOPlanner:
                 # skip empty space in tasks when we move toward end of list
                 valid_flat_actions = (len(raw_env.remaining_tasks) + 1) * 12
                 logits[valid_flat_actions:] = -torch.inf
+
+                # 2. Zablokuj przerwę, jeśli właśnie była przerwa lub dopiero startuje dzień:
+                if just_took_break or raw_env.time_since_last_break < 1.5:
+                    logits[:12] = -torch.inf
                 action = torch.argmax(logits).item()
             obs, _, done, _ = env.step(action)
+            task_act = action // 12
+            just_took_break = (task_act == 0)
 
         generation_time = round(time.time() - t0, 4)
         return raw_env.current_plan, generation_time
 
     def print_plan_after_train(self, user, tasks):
         model_key = f"ppo_base_pretrained"
-        with shelve.open(self.storage_path) as db:
+        with shelve.open(self.base_storage_path) as db:
             buffer = io.BytesIO(db[model_key])
             ac_model = torch.load(buffer, map_location=device, weights_only=False)
             ac_model.eval()
-        start_date = datetime(year=2027, month=2, day=1)
+        start_date = datetime(year=2027, month=1, day=4)
         raw_env = PPOPlannerEnv(users_pool=[user], divided_tasks={0: []}, max_tasks_count=50, planning_mode=True,
                                 start_day=start_date)
         env = make_wrapped_env(raw_env=raw_env)
@@ -418,7 +428,54 @@ class PPOPlanner:
                       f"Zaplanowano: {item['start_time'].strftime('%d-%m %H:%M')} -> {item['end_time'].strftime('%d-%m %H:%M')} "
                       f"(Czas: {item['duration']:.2f}h)")
         print("===================================================\n")
+        # --- KALKULACJA MIAR JAKOŚCI PLANU ---
+        planned_tasks = [p for p in current_plan if not p.get("is_break")]
+        total_tasks = len(planned_tasks)
+        on_time_tasks = 0
+        delayed_tasks = 0
+        total_delay_hours = 0.0
+        urgent_delayed = 0
+        high_delayed = 0
 
+        total_breaks_duration = 0.0
+        break_count = 0
+        total_work_duration = 0.0
+
+        for item in current_plan:
+            if item.get("is_break"):
+                total_breaks_duration += item["duration"]
+                break_count += 1
+            else:
+                total_work_duration += item["duration"]
+                task = item["task"]
+                if task.deadline:
+                    delay = (item["end_time"] - task.deadline).total_seconds() / 3600.0
+                    if delay > 0:
+                        delayed_tasks += 1
+                        total_delay_hours += delay
+                        if task.priority == "urgent":
+                            urgent_delayed += 1
+                        elif task.priority == "high":
+                            high_delayed += 1
+                    else:
+                        on_time_tasks += 1
+                else:
+                    on_time_tasks += 1
+
+        pct_on_time = (on_time_tasks / total_tasks * 100.0) if total_tasks > 0 else 0.0
+        break_ratio = (total_breaks_duration / max(0.1, total_work_duration)) * 100.0
+        avg_delay_on_delayed = (total_delay_hours / max(1, delayed_tasks))
+
+        print("======================== MIARY JAKOŚCI HARMONOGRAMU ========================")
+        print(f"Liczba zaplanowanych zadań:    {total_tasks} szt. (z puli {len(tasks)} podanych)")
+        print(f"Zadania ukończone na czas:     {on_time_tasks} ({pct_on_time:.1f}%)")
+        print(f"Zadania opóźnione:             {delayed_tasks} (w tym urgent: {urgent_delayed}, high: {high_delayed})")
+        print(f"Łączna suma opóźnień:          {total_delay_hours:.2f} godz.")
+        print(f"Średnie opóźnienie (spóźnione):{avg_delay_on_delayed:.2f} godz./zadanie")
+        print(f"Łączny czas samej pracy:       {total_work_duration:.2f} h (nominalnie ~160h)")
+        print(f"Liczba przerw:                 {break_count} (łączny czas: {total_breaks_duration:.2f} h)")
+        print(f"Udział przerw w czasie pracy:  {break_ratio:.1f}% (cel ergonomiczny: 10–15%)")
+        print("===========================================================================\n")
 
 
     def _finetune_on_history(self, user: User, scenarios: list, start_day: datetime, epochs: int = 5):
@@ -452,6 +509,9 @@ class PPOPlanner:
             epochs=epochs,
             pi_lr=1e-10,  # low learning rate to just adjust the model and not change drastically
             vf_lr=5e-10,
+            target_kl=0.02,
+            train_pi_iters=40,
+            train_v_iters=40,
             logger_kwargs=dict(output_dir=f"./PPOGenerated/{model_key}", exp_name=f"{model_key}")
         )
 

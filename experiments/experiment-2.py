@@ -35,7 +35,7 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
         tasks_records = (
             session.query(Task)
-            .filter(Task.phase_order <= 6, Task.phase == phase)  # only from 6 months
+            .filter(Task.phase_order < 4, Task.phase == phase)  # only from 4 months
             .filter_by(phase=phase, is_disruptor=False)
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
@@ -47,7 +47,7 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
         disruptor_task_records = (
             session.query(Task)
-            .filter(Task.phase_order <= 6, Task.phase == phase)  # only from 6 months
+            .filter(Task.phase_order < 3, Task.phase == phase)  # only from 4 months
             .filter_by(phase=phase, is_disruptor=True)
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()

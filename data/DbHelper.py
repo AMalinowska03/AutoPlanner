@@ -91,6 +91,15 @@ class MonthSimulationSession:
         energy_sc = metrics.energy_distribution_score(self.executed_tasks, self.user)
         switch_metrics = metrics.context_switch_score(self.executed_tasks)
         instability_sc = metrics.instability_score(self.plans_history)
+        break_stats = metrics.break_distribution_score(self.executed_tasks, self.user)
+        ot_stats = metrics.overtime_score(self.executed_tasks, self.user)
+
+        urgent_delayed = sum(
+            1 for e in self.executed_tasks
+            if not getattr(e["task"], "is_break", False)
+            and e["task"].deadline and e["actual_end"] > e["task"].deadline
+            and e["task"].priority == "urgent"
+        )
 
         # save sumup of month to db
         with session_maker() as session:
@@ -109,7 +118,12 @@ class MonthSimulationSession:
                 delay_score=delay_sc,
                 energy_score=energy_sc,
                 switch_efficiency=switch_metrics["efficiency_ratio"],
-                instability=instability_sc
+                instability=instability_sc,
+                total_overtime_hours=ot_stats["total_overtime_hours"],
+                break_ratio=break_stats["break_ratio"],
+                break_count=int(break_stats["break_count"]),
+                long_stretch_penalty=break_stats["long_stretch_penalty"],
+                urgent_delayed_count=urgent_delayed
             )
             session.add(metric_record)
             session.commit()

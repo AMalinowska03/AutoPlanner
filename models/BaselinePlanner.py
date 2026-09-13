@@ -252,3 +252,83 @@ class BaselinePlanner:
         generation_time = round(time.time() - t0, 4)
         return current_plan, generation_time
 
+
+    def print_plan_after_train(self, user, tasks):
+        remaining_to_plan = copy.deepcopy(tasks)
+        print("lista zadań podana")
+        for task in remaining_to_plan:
+            print(f"---- [ZADANIE ID: {task.id:3}] | Prio: {task.priority:6} | Typ: {task.type:10} | "
+                  f"Deadline: {task.deadline} | "
+                  f"(Czas: {task.workhours:.2f}h)")
+        previous_plan_state = []
+
+        sim_day = 0
+
+        time_since_last_break = 0.0
+        total_break_time_today = 0.0
+        current_plan, gen_time = self._generate_plan(
+               remaining_to_plan, sim_day, 8.0,
+                work_start_hour=8.0, work_end_hour=16.0,start_date=datetime(year=2027, month=1, day=4)
+            )
+        print(f"\n================ WYGENEROWANY PLAN ================")
+        for item in current_plan:
+            if item.get("is_break"):
+                print(
+                    f"☕ [PRZERWA] {item['start_time'].strftime('%H:%M')} - {item['end_time'].strftime('%H:%M')} (Czas: {item['duration']:.2f}h)")
+            else:
+                task = item["task"]
+                dl_str = task.deadline.strftime('%Y-%m-%d %H:%M') if task.deadline else "Brak"
+                print(f"📋 [ZADANIE ID: {task.id:3}] | Prio: {task.priority:6} | Typ: {task.type:10} | "
+                      f"Deadline: {dl_str} | "
+                      f"Zaplanowano: {item['start_time'].strftime('%d-%m %H:%M')} -> {item['end_time'].strftime('%d-%m %H:%M')} "
+                      f"(Czas: {item['duration']:.2f}h)")
+        print("===================================================\n")
+        # --- KALKULACJA MIAR JAKOŚCI PLANU ---
+        planned_tasks = [p for p in current_plan if not p.get("is_break")]
+        total_tasks = len(planned_tasks)
+        on_time_tasks = 0
+        delayed_tasks = 0
+        total_delay_hours = 0.0
+        urgent_delayed = 0
+        high_delayed = 0
+
+        total_breaks_duration = 0.0
+        break_count = 0
+        total_work_duration = 0.0
+
+        for item in current_plan:
+            if item.get("is_break"):
+                total_breaks_duration += item["duration"]
+                break_count += 1
+            else:
+                total_work_duration += item["duration"]
+                task = item["task"]
+                if task.deadline:
+                    delay = (item["end_time"] - task.deadline).total_seconds() / 3600.0
+                    if delay > 0:
+                        delayed_tasks += 1
+                        total_delay_hours += delay
+                        if task.priority == "urgent":
+                            urgent_delayed += 1
+                        elif task.priority == "high":
+                            high_delayed += 1
+                    else:
+                        on_time_tasks += 1
+                else:
+                    on_time_tasks += 1
+
+        pct_on_time = (on_time_tasks / total_tasks * 100.0) if total_tasks > 0 else 0.0
+        break_ratio = (total_breaks_duration / max(0.1, total_work_duration)) * 100.0
+        avg_delay_on_delayed = (total_delay_hours / max(1, delayed_tasks))
+
+        print("======================== MIARY JAKOŚCI HARMONOGRAMU ========================")
+        print(f"Liczba zaplanowanych zadań:    {total_tasks} szt. (z puli {len(tasks)} podanych)")
+        print(f"Zadania ukończone na czas:     {on_time_tasks} ({pct_on_time:.1f}%)")
+        print(f"Zadania opóźnione:             {delayed_tasks} (w tym urgent: {urgent_delayed}, high: {high_delayed})")
+        print(f"Łączna suma opóźnień:          {total_delay_hours:.2f} godz.")
+        print(f"Średnie opóźnienie (spóźnione):{avg_delay_on_delayed:.2f} godz./zadanie")
+        print(f"Łączny czas samej pracy:       {total_work_duration:.2f} h (nominalnie ~160h)")
+        print(f"Liczba przerw:                 {break_count} (łączny czas: {total_breaks_duration:.2f} h)")
+        print(f"Udział przerw w czasie pracy:  {break_ratio:.1f}% (cel ergonomiczny: 10–15%)")
+        print("===========================================================================\n")
+

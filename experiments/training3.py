@@ -77,17 +77,18 @@ def run_ppo_training(phase: str, users: list[User], tasks: dict[int, list[Task]]
 def choose_nsga_params(phase: str, users: list[User], tasks: dict[int, list[Task]]):
     print(f"------------------------- NSGA {phase} -------------------------")
     planner = NSGAPlanner()
-    if phase == 'pretrain':
-        planner.pretrain(users, tasks)
-    # elif phase == 'finetune':
-    #     print("Not finetuning, won't give any effect")
+    # if phase == 'pretrain':
+    #     planner.pretrain(users, tasks)
+    # el
+    if phase == 'finetune':
+        print("Not finetuning, won't give any effect")
 
     print(f"------------------------- NSGA {phase}: END -------------------------")
 
 
 if __name__ == '__main__':
     for phase in ('pretrain', 'finetune'):
-        users, tasks = prepare_data_for_training(phase, chronotype='morning_lark', users_per_chronotype=100)
+        users, tasks = prepare_data_for_training(phase, chronotype='night_owl', users_per_chronotype=100)
         # users2, _ = prepare_data_for_training(phase, chronotype='intermediate', users_per_chronotype=100)
         # users3, _ = prepare_data_for_training(phase, chronotype='night_owl', users_per_chronotype=100)
         # users.extend(users2)

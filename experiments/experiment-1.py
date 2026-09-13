@@ -31,11 +31,11 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
 
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[:1])).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
 
         tasks_records = (
             session.query(Task)
-            .filter(Task.phase_order <= 12, Task.phase == phase)  # only from a year
+            .filter(Task.phase_order < 6, Task.phase == phase)  # only from a year
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
@@ -52,7 +52,7 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
 def run_experiment():
     group_id = 0
     users, tasks = prepare_data_for_online_phase('online')
-    for algorithm in ['ppo', 'nsga', 'baseline']:  # do one set for algorithm
+    for algorithm in ['baseline']:  # do one set for algorithm 'ppo', 'nsga',
         print(f"\n\n------------------------------------------------------------------------------------------------")
         print(f"                                      {algorithm} ")
         print(f"------------------------------------------------------------------------------------------------")

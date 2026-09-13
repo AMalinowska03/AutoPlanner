@@ -205,11 +205,11 @@ class PlanOptimizationProblem(Problem):
         w_prio = PRIO_WEIGHTS.get(task.priority, 1.0)
 
         if tardiness > 0:
-            tardiness_days = (tardiness / 24.0)  # if we are late 7 days it's as bad as beyond that
+            # tardiness_days = (tardiness / 24.0)  # if we are late 7 days it's as bad as beyond that
             # missing deadline is more crucial to correct than rewarding for doing task on time
-            deadline_reward += (1.0 + tardiness_days) * PENALTY_WEIGHT_DEADLINE * w_prio
+            deadline_reward += (1.0 + math.log1p(tardiness)) * PENALTY_WEIGHT_DEADLINE * w_prio
         else:
-            deadline_reward -= 2 * PENALTY_WEIGHT_DEADLINE * w_prio
+            deadline_reward -= 1.5 * PENALTY_WEIGHT_DEADLINE * w_prio
         return deadline_reward
 
     def _calculate_time_allotment_reward(self, task: Task, planned_duration, actual_duration: float):
@@ -281,7 +281,7 @@ class NSGAPlanner:
         self.repository = None
         self.nsga_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
 
-    def pretrain(self, all_users: List[User], pretrain_tasks: dict, n_trials: int = 30):
+    def pretrain(self, all_users: List[User], pretrain_tasks: dict, n_trials: int = 20):
         """
         Searches for globally optimal hiperparameters based on randomly chosen task groups and users.
         :param all_users:
@@ -296,7 +296,7 @@ class NSGAPlanner:
         def objective(trial):
             # Optuna chooses evolution params
             n_partitions = trial.suggest_int("n_partitions", 3, 6)  # pop_size (10 - 84)
-            n_gen = trial.suggest_int("n_gen", 20, 100)
+            n_gen = trial.suggest_int("n_gen", 10, 70)
             prob_cross = trial.suggest_float("prob_cross", 0.5, 1.0)
             eta_mut = trial.suggest_int("eta_mut", 10, 30)
 
@@ -459,7 +459,7 @@ class NSGAPlanner:
         used_days = max(1, min(sim_day + 1, total_days))
         mean_overtime = overtime_sum / used_days
         return float(
-            50.0 * completion_loss
+            5.0 * completion_loss
             + 2.0 * mean_deadline_delay
             + 1.0 * mean_estimation_error
             + 1.0 * mean_overtime
@@ -739,6 +739,94 @@ class NSGAPlanner:
                 last_task_type = None
 
         return current_plan
+
+
+    def print_plan_after_train(self, user, tasks):
+        self.nsga_params = {"n_partitions": 4, "n_gen": 50, "prob_cross": 0.9, "eta_mut": 20}
+
+        with shelve.open(self.storage_path) as db:
+            if "base_nsga_params" in db:
+                self.nsga_params = db["base_nsga_params"]
+
+        remaining_to_plan = copy.deepcopy(tasks)
+        print("lista zadań podana")
+        for task in remaining_to_plan:
+            print(f"---- [ZADANIE ID: {task.id:3}] | Prio: {task.priority:6} | Typ: {task.type:10} | "
+                  f"Deadline: {task.deadline} | "
+                  f"(Czas: {task.workhours:.2f}h)")
+        previous_plan_state = []
+
+        sim_day = 0
+
+        time_since_last_break = 0.0
+        total_break_time_today = 0.0
+        current_plan, gen_time = self._generate_plan(
+                remaining_to_plan, previous_plan_state, sim_day, 8.0,
+                time_since_last_break, total_break_time_today, None, 8.0, 16.0, 20, datetime(year=2027, month=1, day=4)
+            )
+        print(f"\n================ WYGENEROWANY PLAN ================")
+        for item in current_plan:
+            if item.get("is_break"):
+                print(
+                    f"☕ [PRZERWA] {item['start_time'].strftime('%H:%M')} - {item['end_time'].strftime('%H:%M')} (Czas: {item['duration']:.2f}h)")
+            else:
+                task = item["task"]
+                dl_str = task.deadline.strftime('%Y-%m-%d %H:%M') if task.deadline else "Brak"
+                print(f"📋 [ZADANIE ID: {task.id:3}] | Prio: {task.priority:6} | Typ: {task.type:10} | "
+                      f"Deadline: {dl_str} | "
+                      f"Zaplanowano: {item['start_time'].strftime('%d-%m %H:%M')} -> {item['end_time'].strftime('%d-%m %H:%M')} "
+                      f"(Czas: {item['duration']:.2f}h)")
+        print("===================================================\n")
+        # --- KALKULACJA MIAR JAKOŚCI PLANU ---
+        planned_tasks = [p for p in current_plan if not p.get("is_break")]
+        total_tasks = len(planned_tasks)
+        on_time_tasks = 0
+        delayed_tasks = 0
+        total_delay_hours = 0.0
+        urgent_delayed = 0
+        high_delayed = 0
+
+        total_breaks_duration = 0.0
+        break_count = 0
+        total_work_duration = 0.0
+
+        for item in current_plan:
+            if item.get("is_break"):
+                total_breaks_duration += item["duration"]
+                break_count += 1
+            else:
+                total_work_duration += item["duration"]
+                task = item["task"]
+                if task.deadline:
+                    delay = (item["end_time"] - task.deadline).total_seconds() / 3600.0
+                    if delay > 0:
+                        delayed_tasks += 1
+                        total_delay_hours += delay
+                        if task.priority == "urgent":
+                            urgent_delayed += 1
+                        elif task.priority == "high":
+                            high_delayed += 1
+                    else:
+                        on_time_tasks += 1
+                else:
+                    on_time_tasks += 1
+
+        pct_on_time = (on_time_tasks / total_tasks * 100.0) if total_tasks > 0 else 0.0
+        break_ratio = (total_breaks_duration / max(0.1, total_work_duration)) * 100.0
+        avg_delay_on_delayed = (total_delay_hours / max(1, delayed_tasks))
+
+        print("======================== MIARY JAKOŚCI HARMONOGRAMU ========================")
+        print(f"Liczba zaplanowanych zadań:    {total_tasks} szt. (z puli {len(tasks)} podanych)")
+        print(f"Zadania ukończone na czas:     {on_time_tasks} ({pct_on_time:.1f}%)")
+        print(f"Zadania opóźnione:             {delayed_tasks} (w tym urgent: {urgent_delayed}, high: {high_delayed})")
+        print(f"Łączna suma opóźnień:          {total_delay_hours:.2f} godz.")
+        print(f"Średnie opóźnienie (spóźnione):{avg_delay_on_delayed:.2f} godz./zadanie")
+        print(f"Łączny czas samej pracy:       {total_work_duration:.2f} h (nominalnie ~160h)")
+        print(f"Liczba przerw:                 {break_count} (łączny czas: {total_breaks_duration:.2f} h)")
+        print(f"Udział przerw w czasie pracy:  {break_ratio:.1f}% (cel ergonomiczny: 10–15%)")
+        print("===========================================================================\n")
+
+
 
 
 def sample_scenarios(

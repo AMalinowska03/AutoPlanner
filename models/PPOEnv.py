@@ -53,8 +53,6 @@ class PPOPlannerEnv(gym.Env):
             historical_scenarios: Optional[list] = None
     ):
         super().__init__()
-        self.reward_sum = 0.0
-        self.reward_count = 0
         self.start_day = start_day
         self.planning_mode = planning_mode
         self.save_to_db = save_to_db
@@ -105,10 +103,6 @@ class PPOPlannerEnv(gym.Env):
         :param options:
         :return:
         """
-        # if self.reward_count > 0:
-        # print(f"--------------------------\n---------------------------------\nReset {self.reward_sum/self.reward_count}")
-        self.reward_count = 0
-        self.reward_sum = 0.0
         self.current_plan = []
         self.previous_plan = []
         self.current_day = 0
@@ -269,7 +263,6 @@ class PPOPlannerEnv(gym.Env):
         reward = 0.0
         terminated = False
         truncated = False
-
         # print(f"\n\n STEP: {action_type}, {action_time}")
 
         task_duration = (action_time+1)*5/60
@@ -285,6 +278,8 @@ class PPOPlannerEnv(gym.Env):
         # print(f"Dates: {start_task_time} - {end_task_time}")
 
         if action_type == 0:
+            if self.time_since_last_break < 1.0 or self.current_time_in_day <= self.work_start_hour + 0.2:
+                reward -= 5.0
             break_duration = task_duration
             if not self.planning_mode:
                 self.simulator.process_break(break_duration, self.current_time_in_day)
@@ -347,7 +342,7 @@ class PPOPlannerEnv(gym.Env):
             self.time_since_last_break += actual_duration
             self.last_task_type = task.type
             if not self.planning_mode:
-                reward += 0.5  # for model to actually plan something
+                reward += 2.0  # for model to actually plan something
                 # print(f" --- assign reward: {reward}")
 
         if end_time >= self.work_end_hour:
@@ -361,21 +356,17 @@ class PPOPlannerEnv(gym.Env):
         if len(self.remaining_tasks) == 0 and len(self.backlog) == 0:
             if self.planning_mode is False:
                 days_saved = max(0, self.total_days - self.current_day)
-                reward += 10.0 + (days_saved * 2.0)
+                reward += 2.0 + (days_saved * 0.5)
             terminated = True
 
         elif self.current_day >= self.total_days:
             if self.planning_mode is False:
-                for t in self.remaining_tasks:
-                    w_prio = PRIO_WEIGHTS.get(t.priority, 1.0)
-                    reward -= 5.0 * w_prio
+                uncompleted_ratio = len(self.remaining_tasks) / float(self.max_tasks_count)
+                reward -= uncompleted_ratio * 10.0
                 # print(f" --- remaining tasks reward: {reward}")
             terminated = True
 
-        # reward = max(min(5.0, reward), -5.0)
-        self.reward_sum += reward
-        self.reward_count += 1
-        return self._get_obs(), reward, terminated, truncated, {}
+        return self._get_obs(), float(reward*0.1), terminated, truncated, {}
 
     def _advance_to_next_day(self):
         if not self.planning_mode:
@@ -420,9 +411,9 @@ class PPOPlannerEnv(gym.Env):
         w_prio = PRIO_WEIGHTS.get(task.priority, 1.0)
 
         if tardiness > 0:
-            tardiness_days = (tardiness / 24.0)  # if we are late 7 days it's as bad as beyond that
+            # tardiness_days = (tardiness / 24.0)  # if we are late 7 days it's as bad as beyond that
             # missing deadline is more crucial to correct than rewarding for doing task on time
-            deadline_reward -= (1.0 + tardiness_days) * PENALTY_WEIGHT_DEADLINE * w_prio
+            deadline_reward -= (1.0 + math.log1p(tardiness)) * PENALTY_WEIGHT_DEADLINE * w_prio
         else:
             deadline_reward += 1.5 * PENALTY_WEIGHT_DEADLINE * w_prio
         return deadline_reward
