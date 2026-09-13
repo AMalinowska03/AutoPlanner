@@ -6,17 +6,23 @@
 \begin{table}[htbp]
 \caption{Wyniki efektywności w rozbiciu na chronotypy (Faza: online)}
 \label{tab:online_by_chronotype}
-\begin{tabular}{llllllllllll}
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
 \toprule
- &  & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni \\
-chronotype & algorithm &  &  &  &  &  &  &  &  &  &  \\
+ &  & \makecell{Dystrybucja\\energii} & \makecell{Ukończenie\\miesięczne} & \makecell{Ukończenie\\dzienne} & \makecell{Błąd\\estymacji\\czasu} & \makecell{Opóźnienia\\(godz.)} & \makecell{Efektywność\\przełączeń} & \makecell{Niestabilność\\planu} & \makecell{Czas\\generowania (s)} & \makecell{Liczba\\przeplanowań} & \makecell{Wykorzy-\\stane dni} & Nadgodziny (h) & \makecell{Udział\\przerw (\%)} & \makecell{iczba\\przerw (szt.)} & \makecell{Praca ciągła\\>3.5h (kara)} & \makecell{Opóźnione\\pilne\\zadania (szt.)} \\
+chronotyp & algorytm &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \midrule
-intermediate & baseline & 0.871 $\pm$ 0.013 & 1.000 $\pm$ 0.002 & 0.840 $\pm$ 0.037 & 0.197 $\pm$ 0.025 & 6.361 $\pm$ 6.492 & 0.976 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 9.813 $\pm$ 2.641 & 18.138 $\pm$ 0.913 \\
-\cline{1-12}
-morning_lark & baseline & 0.750 $\pm$ 0.067 & 0.994 $\pm$ 0.016 & 0.874 $\pm$ 0.037 & 0.230 $\pm$ 0.028 & 11.706 $\pm$ 11.300 & 0.978 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 7.395 $\pm$ 3.461 & 19.017 $\pm$ 0.843 \\
-\cline{1-12}
-night_owl & baseline & 0.723 $\pm$ 0.066 & 0.996 $\pm$ 0.013 & 0.863 $\pm$ 0.037 & 0.132 $\pm$ 0.027 & 9.673 $\pm$ 9.802 & 0.975 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 7.233 $\pm$ 3.046 & 18.725 $\pm$ 0.906 \\
-\cline{1-12}
+\multirow[t]{3}{*}{intermediate} & baseline & 0.871 $\pm$ 0.013 & 1.000 $\pm$ 0.002 & 0.840 $\pm$ 0.037 & 0.196 $\pm$ 0.025 & 6.360 $\pm$ 6.494 & 0.976 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 9.801 $\pm$ 2.650 & 18.138 $\pm$ 0.917 & 26.251 $\pm$ 6.265 & 9.221 $\pm$ 0.797 & 19.705 $\pm$ 1.261 & 57.823 $\pm$ 22.044 & 3.532 $\pm$ 2.680 \\
+ & nsga & 0.879 $\pm$ 0.015 & 0.984 $\pm$ 0.025 & 0.765 $\pm$ 0.027 & 0.445 $\pm$ 0.034 & 112.303 $\pm$ 13.168 & 0.992 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 5.591 $\pm$ 1.704 & 13.592 $\pm$ 2.613 & 19.400 $\pm$ 0.676 & 22.920 $\pm$ 4.788 & 20.933 $\pm$ 2.519 & 76.463 $\pm$ 5.435 & 9.875 $\pm$ 5.263 & 5.013 $\pm$ 1.456 \\
+ & ppo & 0.874 $\pm$ 0.013 & 0.936 $\pm$ 0.027 & 0.761 $\pm$ 0.034 & 0.345 $\pm$ 0.041 & 100.667 $\pm$ 12.288 & 0.973 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.279 $\pm$ 0.063 & 14.771 $\pm$ 1.810 & 16.815 $\pm$ 0.787 & 26.354 $\pm$ 5.676 & 4.776 $\pm$ 1.028 & 8.104 $\pm$ 1.387 & 153.299 $\pm$ 12.688 & 3.561 $\pm$ 1.129 \\
+\cline{1-17}
+\multirow[t]{3}{*}{morning_lark} & baseline & 0.749 $\pm$ 0.067 & 0.994 $\pm$ 0.016 & 0.874 $\pm$ 0.037 & 0.230 $\pm$ 0.028 & 11.710 $\pm$ 11.319 & 0.978 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 7.409 $\pm$ 3.469 & 19.013 $\pm$ 0.843 & 31.439 $\pm$ 8.440 & 8.893 $\pm$ 0.797 & 20.274 $\pm$ 0.999 & 60.310 $\pm$ 21.972 & 5.209 $\pm$ 3.337 \\
+ & nsga & 0.743 $\pm$ 0.065 & 0.957 $\pm$ 0.037 & 0.766 $\pm$ 0.027 & 0.481 $\pm$ 0.044 & 115.282 $\pm$ 13.243 & 0.993 $\pm$ 0.002 & 0.000 $\pm$ 0.000 & 5.682 $\pm$ 1.665 & 13.187 $\pm$ 2.727 & 19.788 $\pm$ 0.459 & 27.935 $\pm$ 5.642 & 20.117 $\pm$ 2.433 & 76.105 $\pm$ 5.469 & 13.714 $\pm$ 6.277 & 5.102 $\pm$ 1.453 \\
+ & ppo & 0.761 $\pm$ 0.059 & 0.931 $\pm$ 0.029 & 0.778 $\pm$ 0.037 & 0.383 $\pm$ 0.051 & 104.409 $\pm$ 12.745 & 0.975 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.273 $\pm$ 0.066 & 14.684 $\pm$ 2.158 & 17.475 $\pm$ 0.834 & 32.977 $\pm$ 7.253 & 4.466 $\pm$ 1.009 & 8.064 $\pm$ 1.448 & 158.000 $\pm$ 14.158 & 3.552 $\pm$ 1.070 \\
+\cline{1-17}
+\multirow[t]{3}{*}{night_owl} & baseline & 0.723 $\pm$ 0.066 & 0.996 $\pm$ 0.013 & 0.863 $\pm$ 0.037 & 0.132 $\pm$ 0.027 & 9.716 $\pm$ 9.830 & 0.976 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 7.214 $\pm$ 3.049 & 18.732 $\pm$ 0.906 & 20.900 $\pm$ 4.826 & 9.358 $\pm$ 0.490 & 19.879 $\pm$ 0.978 & 49.511 $\pm$ 18.735 & 4.655 $\pm$ 3.007 \\
+ & nsga & 0.735 $\pm$ 0.059 & 0.966 $\pm$ 0.035 & 0.766 $\pm$ 0.026 & 0.443 $\pm$ 0.035 & 114.388 $\pm$ 13.514 & 0.993 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 5.621 $\pm$ 1.652 & 12.975 $\pm$ 2.637 & 19.715 $\pm$ 0.507 & 18.964 $\pm$ 3.584 & 21.353 $\pm$ 2.507 & 76.508 $\pm$ 5.229 & 9.047 $\pm$ 4.951 & 5.097 $\pm$ 1.462 \\
+ & ppo & 0.711 $\pm$ 0.062 & 0.936 $\pm$ 0.026 & 0.779 $\pm$ 0.035 & 0.309 $\pm$ 0.043 & 103.512 $\pm$ 12.390 & 0.973 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.279 $\pm$ 0.062 & 14.146 $\pm$ 2.050 & 17.364 $\pm$ 0.861 & 21.374 $\pm$ 4.168 & 4.845 $\pm$ 1.020 & 8.086 $\pm$ 1.415 & 158.229 $\pm$ 12.511 & 3.503 $\pm$ 1.060 \\
+\cline{1-17}
 \bottomrule
 \end{tabular}
 \end{table}
@@ -26,12 +32,14 @@ night_owl & baseline & 0.723 $\pm$ 0.066 & 0.996 $\pm$ 0.013 & 0.863 $\pm$ 0.037
 \begin{table}[htbp]
 \caption{Globalne zestawienie parametrów algorytmów (Faza: online)}
 \label{tab:online_global_metrics}
-\begin{tabular}{lllllllllll}
+\begin{tabular}{llllllllllllllll}
 \toprule
- & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni \\
-algorithm &  &  &  &  &  &  &  &  &  &  \\
+ & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni & Nadgodziny (h) & Udział przerw (%) & Liczba przerw (szt.) & Praca ciągła >3.5h (kara) & Opóźnione pilne zadania (szt.) \\
+algorithm &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \midrule
-baseline & 0.781 $\pm$ 0.085 & 0.997 $\pm$ 0.012 & 0.859 $\pm$ 0.040 & 0.186 $\pm$ 0.048 & 9.247 $\pm$ 9.664 & 0.976 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 8.147 $\pm$ 3.285 & 18.627 $\pm$ 0.960 \\
+baseline & 0.781 $\pm$ 0.085 & 0.997 $\pm$ 0.012 & 0.859 $\pm$ 0.040 & 0.186 $\pm$ 0.049 & 9.262 $\pm$ 9.682 & 0.976 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 8.141 $\pm$ 3.290 & 18.628 $\pm$ 0.961 & 26.197 $\pm$ 7.942 & 9.157 $\pm$ 0.735 & 19.953 $\pm$ 1.112 & 55.881 $\pm$ 21.465 & 4.465 $\pm$ 3.098 \\
+nsga & 0.786 $\pm$ 0.084 & 0.969 $\pm$ 0.034 & 0.766 $\pm$ 0.027 & 0.456 $\pm$ 0.042 & 113.991 $\pm$ 13.360 & 0.993 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 5.631 $\pm$ 1.673 & 13.251 $\pm$ 2.670 & 19.634 $\pm$ 0.580 & 23.273 $\pm$ 5.999 & 20.801 $\pm$ 2.538 & 76.359 $\pm$ 5.378 & 10.879 $\pm$ 5.885 & 5.071 $\pm$ 1.457 \\
+ppo & 0.782 $\pm$ 0.084 & 0.935 $\pm$ 0.027 & 0.773 $\pm$ 0.036 & 0.346 $\pm$ 0.054 & 102.863 $\pm$ 12.571 & 0.974 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.277 $\pm$ 0.064 & 14.534 $\pm$ 2.029 & 17.218 $\pm$ 0.876 & 26.902 $\pm$ 7.525 & 4.695 $\pm$ 1.031 & 8.085 $\pm$ 1.416 & 156.509 $\pm$ 13.328 & 3.539 $\pm$ 1.087 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -41,11 +49,13 @@ baseline & 0.781 $\pm$ 0.085 & 0.997 $\pm$ 0.012 & 0.859 $\pm$ 0.040 & 0.186 $\p
 \begin{table}[htbp]
 \caption{Względna zmiana wskaźników jakościowych względem Baseline (Faza: online)}
 \label{tab:online_relative_gain}
-\begin{tabular}{lrrrrrrrrr}
+\begin{tabular}{lrrrrrrrrrrrrrr}
 \toprule
- & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Liczba przeplanowań & Wykorzystane dni \\
-algorithm &  &  &  &  &  &  &  &  &  \\
+ & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Liczba przeplanowań & Wykorzystane dni & Nadgodziny (h) & Udział przerw (%) & Liczba przerw (szt.) & Praca ciągła >3.5h (kara) & Opóźnione pilne zadania (szt.) \\
+algorithm &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
 \midrule
+nsga & +0.59\% & -2.79\% & -10.81\% & +145.16\% & +1130.73\% & +1.68\% & NaN & +62.76\% & +5.40\% & -11.16\% & +127.15\% & +282.70\% & -80.53\% & +13.56\% \\
+ppo & +0.10\% & -6.23\% & -10.06\% & +85.78\% & +1010.58\% & -0.27\% & NaN & +78.52\% & -7.57\% & +2.69\% & -48.73\% & -59.48\% & +180.08\% & -20.75\% \\
 \bottomrule
 \end{tabular}
 \end{table}

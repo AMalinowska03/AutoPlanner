@@ -480,12 +480,6 @@ class PPOPlanner:
 
     def _finetune_on_history(self, user: User, scenarios: list, start_day: datetime, epochs: int = 5):
         print(f"PPO: Finetuning after month on {len(scenarios)} performed scenarios...")
-        # W models/PPOPlanner.py wewnątrz _finetune_on_history:
-        print(f"\n--- [DIAGNOSTYKA] Scenariusze do finetuningu ({len(scenarios)} sztuk) ---")
-        for idx, sc in enumerate(scenarios):
-            print(
-                f"Scenariusz {idx}: Dzień {sc['day']}, Godzina {sc['time']:.2f}, Zadań do zrobienia: {len(sc['remaining_tasks'])}")
-        print("-------------------------------------------------------------------\n")
         model_key = f"ppo_user_{user.id}_active"
         with shelve.open(self.storage_path) as db:
             buffer = io.BytesIO(db[model_key])
@@ -507,8 +501,8 @@ class PPOPlanner:
             ac_kwargs=dict(hidden_sizes=(128, 128)),
             steps_per_epoch=max(1000, len(scenarios) * 100),  # epoch length depending on scenarios count
             epochs=epochs,
-            pi_lr=1e-10,  # low learning rate to just adjust the model and not change drastically
-            vf_lr=5e-10,
+            pi_lr=1e-5,  # low learning rate to just adjust the model and not change drastically
+            vf_lr=5e-5,
             target_kl=0.02,
             train_pi_iters=40,
             train_v_iters=40,

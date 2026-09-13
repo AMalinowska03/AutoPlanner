@@ -35,7 +35,7 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
         tasks_records = (
             session.query(Task)
-            .filter(Task.phase_order < 4, Task.phase == phase)  # only from 4 months
+            .filter(Task.phase_order < 3, Task.phase == phase)  # only from 3 months
             .filter_by(phase=phase, is_disruptor=False)
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
@@ -47,7 +47,7 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
         disruptor_task_records = (
             session.query(Task)
-            .filter(Task.phase_order < 3, Task.phase == phase)  # only from 4 months
+            .filter(Task.phase_order < 3, Task.phase == phase)  # only from 3 months
             .filter_by(phase=phase, is_disruptor=True)
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
@@ -65,7 +65,11 @@ def run_experiment():
     group_id = 252001
     users, tasks, disruptors_tasks = prepare_data_for_disruptions_phase('disruptions')
     for algorithm in ['ppo', 'nsga', 'baseline']:
+        print(f"\n\n------------------------------------------------------------------------------------------------")
+        print(f"                                      {algorithm} ")
+        print(f"------------------------------------------------------------------------------------------------")
         for user in users:
+            print(f"-------------------------------------- USER {user.id} {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} --------------------------------------")
             if algorithm == 'baseline':
                 planner = BaselinePlanner(user)
             elif algorithm == 'ppo':
@@ -86,6 +90,7 @@ def run_experiment():
                 sim_session.compute_and_save_to_db(SessionLocal, res["total_replans"], res["days_used"])
                 start_date = start_date + timedelta(days=28)
                 group_id += 1
+            print(f"-------------------------------------- USER {user.id} :END {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} --------------------------------------")
 
 
 if __name__ == '__main__':

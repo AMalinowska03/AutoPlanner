@@ -44,7 +44,6 @@ class ExperimentMetric(Base):
     algorithm = Column(Enum('ppo', 'nsga', 'baseline'))
     user_id = Column(Integer, index=True)
     phase_order = Column(Integer, index=True)
-    group_id = Column(Integer)
 
     total_replans = Column(Integer)
     days_used = Column(Integer)

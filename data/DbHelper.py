@@ -18,7 +18,6 @@ class MonthSimulationSession:
         self.algorithm = algorithm
         self.phase = phase
         self.phase_order = phase_order
-        self.group_id = group_id
 
         # memory containers
         self.plans_history: List[Dict[str, Any]] = []
@@ -108,7 +107,6 @@ class MonthSimulationSession:
                 algorithm=self.algorithm,
                 user_id=self.user.id,
                 phase_order=self.phase_order,
-                group_id=self.group_id,
                 total_replans=total_replans,
                 days_used=days_used,
                 avg_generating_time=round(avg_gen_time, 4),

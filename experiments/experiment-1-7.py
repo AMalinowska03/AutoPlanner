@@ -1,4 +1,5 @@
 import json
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -35,7 +36,7 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
 
         tasks_records = (
             session.query(Task)
-            .filter(Task.phase_order <= 12, Task.phase == phase)  # only from a year
+            .filter(Task.phase_order < 6, Task.phase == phase)  # only from a year
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
@@ -57,7 +58,7 @@ def run_experiment():
         print(f"                                      {algorithm} ")
         print(f"------------------------------------------------------------------------------------------------")
         for user in users:  # iterate through 300 users
-            print(f"-------------------------------------- USER {user.id} --------------------------------------")
+            print(f"-------------------------------------- USER {user.id} {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} --------------------------------------")
             if algorithm == 'baseline':
                 planner = BaselinePlanner(user)
             elif algorithm == 'ppo':

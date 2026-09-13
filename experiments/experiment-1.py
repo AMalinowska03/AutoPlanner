@@ -1,4 +1,5 @@
 import json
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -31,7 +32,7 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
 
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[:1])).all()
 
         tasks_records = (
             session.query(Task)
@@ -52,12 +53,12 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
 def run_experiment():
     group_id = 0
     users, tasks = prepare_data_for_online_phase('online')
-    for algorithm in ['baseline']:  # do one set for algorithm 'ppo', 'nsga',
+    for algorithm in ['ppo', 'nsga', 'baseline']:  # do one set for algorithm
         print(f"\n\n------------------------------------------------------------------------------------------------")
         print(f"                                      {algorithm} ")
         print(f"------------------------------------------------------------------------------------------------")
         for user in users:  # iterate through 300 users
-            print(f"-------------------------------------- USER {user.id} --------------------------------------")
+            print(f"-------------------------------------- USER {user.id} {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} --------------------------------------")
             if algorithm == 'baseline':
                 planner = BaselinePlanner(user)
             elif algorithm == 'ppo':

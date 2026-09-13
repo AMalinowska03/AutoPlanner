@@ -1,4 +1,5 @@
 import json
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -29,13 +30,17 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
         raise ValueError(f"Unavailable phase: '{phase}'. possible values: 'online'.")
 
     with SessionLocal() as session:
-        user_ids = load_finished_user_ids()
+        # user_ids = load_finished_user_ids()
 
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[75:100])).all()
+        user_ids = [819, 1256, 838, 1272, 864, 1293, 911, 1319, 927, 140, 1320, 933, 154, 1342, 940, 159, 1346, 942,
+                    174, 1375, 949, 188, 1377, 974, 193, 1385, 1002, 219, 1397, 227, 1025, 1410, 237, 1054, 1422,
+                    242, 1058, 1435, 249, 1070, 1448, 259, 1083, 273, 1454, 1101, 342, 351, 368, 398, 406, 408]
+
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[39:])).all()
 
         tasks_records = (
             session.query(Task)
-            .filter(Task.phase_order <= 12, Task.phase == phase)  # only from a year
+            .filter(Task.phase_order < 6, Task.phase == phase)  # only from a year
             .order_by(Task.phase_order, Task.deadline, Task.priority)
             .all()
         )
@@ -52,12 +57,12 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
 def run_experiment():
     group_id = 0
     users, tasks = prepare_data_for_online_phase('online')
-    for algorithm in ['ppo', 'nsga', 'baseline']:  # do one set for algorithm
+    for algorithm in ['nsga']:  # do one set for algorithm
         print(f"\n\n------------------------------------------------------------------------------------------------")
         print(f"                                      {algorithm} ")
         print(f"------------------------------------------------------------------------------------------------")
         for user in users:  # iterate through 300 users
-            print(f"-------------------------------------- USER {user.id} --------------------------------------")
+            print(f"-------------------------------------- USER {user.id} {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} --------------------------------------")
             if algorithm == 'baseline':
                 planner = BaselinePlanner(user)
             elif algorithm == 'ppo':

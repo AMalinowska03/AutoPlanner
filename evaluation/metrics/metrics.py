@@ -1,12 +1,24 @@
+from datetime import datetime
 from typing import List, Dict, Any
 import math
 
-from data.DbHelper import get_user_work_hours
 from simulation.UserSimulator import CHRONOTYPES, SKILL_ATTR_MAP, SWITCH_MATRIX, calculate_switch_lag
 from collections import defaultdict
 from data.DbModels import User
 
 PRIORITY_WEIGHTS = {"low": 0.25, "medium": 0.5, "high": 0.75, "urgent": 1.0}
+
+
+def get_user_work_hours(user):
+    work_start_hour = (
+        user.work_start_time.hour + user.work_start_time.minute / 60.0
+        if isinstance(user.work_start_time, datetime) else 8.0
+    )
+    work_end_hour = (
+        user.work_end_time.hour + user.work_end_time.minute / 60.0
+        if isinstance(user.work_end_time, datetime) else 16.0
+    )
+    return work_start_hour, work_end_hour
 
 
 def get_task_difficulty(task, user: User) -> float:

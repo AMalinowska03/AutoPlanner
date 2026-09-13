@@ -1,0 +1,61 @@
+% =========================================================================
+% WYNIKI DLA FAZY: DISRUPTIONS
+% =========================================================================
+
+% --- TABELA 1: Chronotyp x Algorytm (mean ± std) ---
+\begin{table}[htbp]
+\caption{Wyniki efektywności w rozbiciu na chronotypy (Faza: disruptions)}
+\label{tab:disruptions_by_chronotype}
+\begin{tabular}{lllllllllllllllll}
+\toprule
+ &  & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni & Nadgodziny (h) & Udział przerw (%) & Liczba przerw (szt.) & Praca ciągła >3.5h (kara) & Opóźnione pilne zadania (szt.) \\
+chronotype & algorithm &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\midrule
+\multirow[t]{3}{*}{intermediate} & baseline & 0.869 $\pm$ 0.014 & 0.998 $\pm$ 0.009 & 0.838 $\pm$ 0.026 & 0.200 $\pm$ 0.028 & 4000.521 $\pm$ 40.102 & 0.977 $\pm$ 0.002 & 0.000 $\pm$ 0.000 & 0.001 $\pm$ 0.001 & 10.617 $\pm$ 2.588 & 18.157 $\pm$ 0.869 & 26.796 $\pm$ 7.350 & 9.271 $\pm$ 0.788 & 19.873 $\pm$ 1.340 & 59.325 $\pm$ 25.365 & 10.933 $\pm$ 0.287 \\
+ & nsga & 0.879 $\pm$ 0.014 & 0.980 $\pm$ 0.027 & 0.755 $\pm$ 0.024 & 0.444 $\pm$ 0.033 & 4018.869 $\pm$ 28.959 & 0.992 $\pm$ 0.002 & 0.000 $\pm$ 0.000 & 7.424 $\pm$ 1.507 & 13.493 $\pm$ 2.597 & 19.450 $\pm$ 0.645 & 22.702 $\pm$ 4.099 & 21.541 $\pm$ 2.466 & 78.110 $\pm$ 4.936 & 9.067 $\pm$ 4.773 & 10.793 $\pm$ 0.481 \\
+ & ppo & 0.875 $\pm$ 0.013 & 0.924 $\pm$ 0.081 & 0.783 $\pm$ 0.070 & 0.295 $\pm$ 0.065 & 3935.911 $\pm$ 47.866 & 0.978 $\pm$ 0.005 & 0.000 $\pm$ 0.000 & 0.304 $\pm$ 0.108 & 12.213 $\pm$ 3.024 & 16.420 $\pm$ 1.806 & 21.350 $\pm$ 6.798 & 15.589 $\pm$ 9.145 & 19.940 $\pm$ 8.703 & 91.969 $\pm$ 50.648 & 9.290 $\pm$ 1.615 \\
+\cline{1-17}
+\multirow[t]{3}{*}{morning_lark} & baseline & 0.751 $\pm$ 0.066 & 0.989 $\pm$ 0.022 & 0.868 $\pm$ 0.033 & 0.234 $\pm$ 0.030 & 4015.850 $\pm$ 41.417 & 0.979 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.001 $\pm$ 0.003 & 8.213 $\pm$ 3.631 & 18.993 $\pm$ 0.818 & 30.637 $\pm$ 6.467 & 9.065 $\pm$ 0.814 & 20.580 $\pm$ 1.226 & 60.363 $\pm$ 23.326 & 10.680 $\pm$ 0.668 \\
+ & nsga & 0.743 $\pm$ 0.065 & 0.955 $\pm$ 0.038 & 0.754 $\pm$ 0.026 & 0.477 $\pm$ 0.045 & 4022.088 $\pm$ 26.081 & 0.993 $\pm$ 0.002 & 0.000 $\pm$ 0.000 & 7.534 $\pm$ 1.468 & 13.653 $\pm$ 2.752 & 19.793 $\pm$ 0.474 & 28.183 $\pm$ 5.583 & 20.038 $\pm$ 2.312 & 76.913 $\pm$ 4.886 & 14.096 $\pm$ 6.502 & 10.463 $\pm$ 0.807 \\
+ & ppo & 0.760 $\pm$ 0.060 & 0.920 $\pm$ 0.069 & 0.800 $\pm$ 0.070 & 0.334 $\pm$ 0.079 & 3941.099 $\pm$ 45.444 & 0.980 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.278 $\pm$ 0.080 & 12.317 $\pm$ 3.300 & 16.953 $\pm$ 1.742 & 26.695 $\pm$ 8.177 & 14.419 $\pm$ 8.703 & 19.897 $\pm$ 9.350 & 95.187 $\pm$ 51.438 & 9.273 $\pm$ 1.472 \\
+\cline{1-17}
+\multirow[t]{3}{*}{night_owl} & baseline & 0.722 $\pm$ 0.067 & 0.993 $\pm$ 0.017 & 0.856 $\pm$ 0.032 & 0.134 $\pm$ 0.028 & 4010.245 $\pm$ 40.133 & 0.977 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.001 $\pm$ 0.003 & 8.013 $\pm$ 2.926 & 18.710 $\pm$ 0.869 & 21.059 $\pm$ 4.004 & 9.470 $\pm$ 0.580 & 20.107 $\pm$ 1.320 & 51.892 $\pm$ 19.959 & 10.817 $\pm$ 0.494 \\
+ & nsga & 0.736 $\pm$ 0.059 & 0.965 $\pm$ 0.035 & 0.757 $\pm$ 0.025 & 0.445 $\pm$ 0.033 & 4023.407 $\pm$ 27.517 & 0.992 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 7.686 $\pm$ 1.529 & 13.153 $\pm$ 2.596 & 19.750 $\pm$ 0.478 & 19.292 $\pm$ 3.600 & 21.712 $\pm$ 2.316 & 77.697 $\pm$ 4.944 & 8.722 $\pm$ 4.830 & 10.567 $\pm$ 0.735 \\
+ & ppo & 0.712 $\pm$ 0.062 & 0.914 $\pm$ 0.082 & 0.795 $\pm$ 0.072 & 0.276 $\pm$ 0.077 & 3939.387 $\pm$ 47.560 & 0.977 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.289 $\pm$ 0.079 & 12.230 $\pm$ 3.130 & 16.750 $\pm$ 1.716 & 18.062 $\pm$ 4.762 & 14.337 $\pm$ 8.817 & 18.407 $\pm$ 8.453 & 102.073 $\pm$ 50.674 & 9.197 $\pm$ 1.555 \\
+\cline{1-17}
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- TABELA 2: Średnie globalne (mean ± std) ---
+\begin{table}[htbp]
+\caption{Globalne zestawienie parametrów algorytmów (Faza: disruptions)}
+\label{tab:disruptions_global_metrics}
+\begin{tabular}{llllllllllllllll}
+\toprule
+ & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Czas generowania (s) & Liczba przeplanowań & Wykorzystane dni & Nadgodziny (h) & Udział przerw (%) & Liczba przerw (szt.) & Praca ciągła >3.5h (kara) & Opóźnione pilne zadania (szt.) \\
+algorithm &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\midrule
+baseline & 0.781 $\pm$ 0.084 & 0.993 $\pm$ 0.017 & 0.854 $\pm$ 0.033 & 0.189 $\pm$ 0.050 & 4008.872 $\pm$ 41.003 & 0.978 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 0.001 $\pm$ 0.002 & 8.948 $\pm$ 3.296 & 18.620 $\pm$ 0.919 & 26.164 $\pm$ 7.260 & 9.269 $\pm$ 0.753 & 20.187 $\pm$ 1.328 & 57.193 $\pm$ 23.274 & 10.810 $\pm$ 0.517 \\
+nsga & 0.786 $\pm$ 0.084 & 0.967 $\pm$ 0.035 & 0.755 $\pm$ 0.025 & 0.455 $\pm$ 0.041 & 4021.455 $\pm$ 27.579 & 0.992 $\pm$ 0.003 & 0.000 $\pm$ 0.000 & 7.548 $\pm$ 1.504 & 13.433 $\pm$ 2.655 & 19.664 $\pm$ 0.559 & 23.392 $\pm$ 5.805 & 21.097 $\pm$ 2.480 & 77.573 $\pm$ 4.941 & 10.628 $\pm$ 5.953 & 10.608 $\pm$ 0.702 \\
+ppo & 0.782 $\pm$ 0.085 & 0.919 $\pm$ 0.078 & 0.793 $\pm$ 0.071 & 0.302 $\pm$ 0.078 & 3938.799 $\pm$ 46.967 & 0.978 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.290 $\pm$ 0.091 & 12.253 $\pm$ 3.150 & 16.708 $\pm$ 1.767 & 22.036 $\pm$ 7.604 & 14.782 $\pm$ 8.899 & 19.414 $\pm$ 8.862 & 96.410 $\pm$ 51.039 & 9.253 $\pm$ 1.547 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- TABELA 3: Zysk/strata względna do Baseline (%) ---
+\begin{table}[htbp]
+\caption{Względna zmiana wskaźników jakościowych względem Baseline (Faza: disruptions)}
+\label{tab:disruptions_relative_gain}
+\begin{tabular}{lrrrrrrrrrrrrrr}
+\toprule
+ & Dystrybucja energii & Ukończenie miesięczne & Ukończenie dzienne & Błąd estymacji czasu & Opóźnienia (godz.) & Efektywność przełączeń & Niestabilność planu & Liczba przeplanowań & Wykorzystane dni & Nadgodziny (h) & Udział przerw (%) & Liczba przerw (szt.) & Praca ciągła >3.5h (kara) & Opóźnione pilne zadania (szt.) \\
+algorithm &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\
+\midrule
+nsga & +0.66\% & -2.68\% & -11.53\% & +140.80\% & +0.31\% & +1.50\% & NaN & +50.13\% & +5.61\% & -10.59\% & +127.61\% & +284.28\% & -81.42\% & -1.87\% \\
+ppo & +0.16\% & -7.45\% & -7.16\% & +59.65\% & -1.75\% & +0.05\% & NaN & +36.94\% & -10.27\% & -15.78\% & +59.48\% & -3.83\% & +68.57\% & -14.40\% \\
+\bottomrule
+\end{tabular}
+\end{table}

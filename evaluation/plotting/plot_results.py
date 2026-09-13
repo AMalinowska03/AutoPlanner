@@ -17,7 +17,6 @@ def load_data() -> pd.DataFrame:
                 ExperimentMetric.algorithm,
                 ExperimentMetric.user_id,
                 ExperimentMetric.phase_order,
-                ExperimentMetric.group_id,
                 ExperimentMetric.total_replans,
                 ExperimentMetric.days_used,
                 ExperimentMetric.avg_generating_time,
@@ -28,6 +27,11 @@ def load_data() -> pd.DataFrame:
                 ExperimentMetric.energy_score,
                 ExperimentMetric.switch_efficiency,
                 ExperimentMetric.instability,
+                ExperimentMetric.total_overtime_hours,
+                ExperimentMetric.break_ratio,
+                ExperimentMetric.break_count,
+                ExperimentMetric.long_stretch_penalty,
+                ExperimentMetric.urgent_delayed_count,
                 User.chronotype,
                 User.procrastination_probability,
 
@@ -210,6 +214,21 @@ def generate_phase_plots(df: pd.DataFrame, sample_users: dict, phase_name: str, 
     plt.savefig(os.path.join(output_dir, "plot_10_ergonomics_and_overtime.png"), dpi=300)
     plt.close()
 
+    # -------------------------------------------------------------
+    # Urgent Tasks Protection
+    # -------------------------------------------------------------
+    plt.figure(figsize=(8, 5))
+    sns.barplot(
+        data=df_phase, x="algorithm", y="urgent_delayed_count",
+        palette=palette, errorbar="sd"
+    )
+    plt.title(f"Średnia Liczba Opóźnionych Zadań Pilnych 'Urgent' (Faza: {phase_name.upper()})")
+    plt.xlabel("Algorytm")
+    plt.ylabel("Liczba spóźnionych zadań pilnych (niższy = lepszy)")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "plot_11_urgent_protection.png"), dpi=300)
+    plt.close()
+
     # =============================================================
     # 6. Case Study: 3 Sample Users Month-by-Month Trends
     # =============================================================
@@ -283,10 +302,6 @@ def generate_phase_plots(df: pd.DataFrame, sample_users: dict, phase_name: str, 
     print(f"Pomyślnie wygenerowano wykresy dla fazy '{phase_name}' w katalogu: {output_dir}")
 
 
-import os
-import pandas as pd
-
-
 def extract_derived_metrics_summary(
         df: pd.DataFrame,
         phase_name: str = "online",
@@ -302,7 +317,7 @@ def extract_derived_metrics_summary(
     # 1. Filter strictly for the requested phase
     df_phase = df[df['experiment_type'] == phase_name].copy()
     if df_phase.empty:
-        print(f"[Warning] Brak danych dla fazy: {phase_name}")
+        print(f"[Warning] No data found for phase: {phase_name}")
         return
 
     # 2. Calculate derived metrics on existing DataFrame columns
@@ -331,7 +346,7 @@ def extract_derived_metrics_summary(
         "energy_delay_ratio": "Efektywność kompromisu energii",
         "work_density": "Gęstość pracy (utylizacja miesiąca)",
         "pacing_balance": "Równomierność tempa pracy",
-        "instability_per_replan": "Szok planu na przeplanowanie"
+        "instability_per_replan": "Szok planu na przeplanowanie",
     }
 
     formatted_summary = pd.DataFrame(index=agg_summary.index)
@@ -378,7 +393,9 @@ def export_all_tables_to_latex(df: pd.DataFrame, phase_name: str, base_output_di
         "days_used": "Wykorzystane dni",
         "total_overtime_hours": "Nadgodziny (h)",
         "break_ratio": "Udział przerw (%)",
-        "urgent_delayed_count": "Opóźnione urgent (szt.)"
+        "break_count": "Liczba przerw (szt.)",
+        "long_stretch_penalty": "Praca ciągła >3.5h (kara)",
+        "urgent_delayed_count": "Opóźnione pilne zadania (szt.)"
     }
     tracked_metrics = list(cols_rename.keys())
 
@@ -442,13 +459,14 @@ def export_all_tables_to_latex(df: pd.DataFrame, phase_name: str, base_output_di
 if __name__ == "__main__":
     data = load_data()
     sample_users = get_sample_users_per_chronotype(data)
-    print(f"Wybrana próbka użytkowników do studium przypadku: {sample_users}")
+    print(f"Chosen user sample: {sample_users}")
 
     # Process phase: 'online' (Experiment 1)
-    generate_phase_plots(data, sample_users, phase_name="online", base_output_dir="../results")
-    export_all_tables_to_latex(data, phase_name="online", base_output_dir="../results")
-    extract_derived_metrics_summary(data, phase_name="online", base_output_dir="../results")
+    # generate_phase_plots(data, sample_users, phase_name="online", base_output_dir="../results")
+    # export_all_tables_to_latex(data, phase_name="online", base_output_dir="../results")
+    # extract_derived_metrics_summary(data, phase_name="online", base_output_dir="../results")
 
     # Process phase: 'disruptions' (Experiment 2)
-    # generate_phase_plots(data, sample_users, phase_name="disruptions", base_output_dir="../results")
-    # export_all_tables_to_latex(data, phase_name="disruptions", base_output_dir="../results")
+    generate_phase_plots(data, sample_users, phase_name="disruptions", base_output_dir="../results")
+    export_all_tables_to_latex(data, phase_name="disruptions", base_output_dir="../results")
+    extract_derived_metrics_summary(data, phase_name="disruptions", base_output_dir="../results")
