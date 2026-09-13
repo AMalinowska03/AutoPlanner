@@ -1,0 +1,844 @@
+% =========================================================================
+% STUDIUM PRZYPADKU DLA PRACOWNIKA #31 (MORNING_LARK)
+% =========================================================================
+
+\subsection{Algorytm: PPO -- Planowanie Bazowe i Przeplanowanie}
+
+Wstrzyknięcie zadania zakłócającego (ID: 16395) nastąpiło w dniu: \textbf{03-04 08:45}.
+
+\subsubsection*{1. Specyfikacja Planu Bazowego (Generacja 0)}
+{\small
+\begin{enumerate}
+  \item [\textbf{14657}] \textbf{Write report \#7961 (Finance) (Part 5)} | Prio: \texttt{medium} | Deadline: 03-04 15:05 | Nominalny czas: 1.00h | Planowany start: 27-03 08:00 | Planowany koniec: 27-03 09:15 | Planowany czas: 1.25h
+  \item [\textbf{14635}] \textbf{Team meeting (Q4 Review Report)} | Prio: \texttt{medium} | Deadline: 03-04 15:30 | Nominalny czas: 3.00h | Planowany start: 27-03 09:15 | Planowany koniec: 27-03 13:00 | Planowany czas: 3.75h
+  \item [\textbf{14667}] \textbf{Code feature \#6665 (Operations) (Part 8)} | Prio: \texttt{medium} | Deadline: 03-04 16:20 | Nominalny czas: 1.50h | Planowany start: 27-03 13:00 | Planowany koniec: 27-03 14:52 | Planowany czas: 1.88h
+  \item [\textbf{14702}] \textbf{Write proposal \#7144 (Operations) (Part 3)} | Prio: \texttt{low} | Deadline: 03-04 16:35 | Nominalny czas: 1.50h | Planowany start: 27-03 14:52 | Planowany koniec: 27-03 16:44 | Planowany czas: 1.88h
+  \item [\textbf{14604}] \textbf{Code feature \#4281 (IT) (Part 6)} | Prio: \texttt{urgent} | Deadline: 03-04 16:40 | Nominalny czas: 2.00h | Planowany start: 28-03 08:00 | Planowany koniec: 28-03 10:30 | Planowany czas: 2.50h
+  \item [\textbf{14663}] \textbf{Write proposal \#3254 (Operations) (Part 7)} | Prio: \texttt{medium} | Deadline: 03-04 16:55 | Nominalny czas: 0.50h | Planowany start: 28-03 10:30 | Planowany koniec: 28-03 11:07 | Planowany czas: 0.62h
+  \item [\textbf{14698}] \textbf{Social media update \#9105 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 04-04 10:55 | Nominalny czas: 3.00h | Planowany start: 28-03 11:07 | Planowany koniec: 28-03 14:52 | Planowany czas: 3.75h
+  \item [\textbf{14639}] \textbf{Write report \#4817 (Operations) (Part 3)} | Prio: \texttt{medium} | Deadline: 04-04 13:10 | Nominalny czas: 2.50h | Planowany start: 28-03 14:52 | Planowany koniec: 28-03 17:59 | Planowany czas: 3.12h
+  \item [\textbf{14689}] \textbf{Bug fixing \#2117 (R\&D) (Part 5)} | Prio: \texttt{low} | Deadline: 04-04 16:05 | Nominalny czas: 1.00h | Planowany start: 29-03 08:00 | Planowany koniec: 29-03 09:15 | Planowany czas: 1.25h
+  \item [\textbf{14598}] \textbf{Write report \#3518 (Operations) (Part 2)} | Prio: \texttt{urgent} | Deadline: 04-04 16:10 | Nominalny czas: 1.50h | Planowany start: 29-03 09:15 | Planowany koniec: 29-03 11:07 | Planowany czas: 1.88h
+  \item [\textbf{14632}] \textbf{Campaign review \#8750 (Marketing) (Part 4)} | Prio: \texttt{medium} | Deadline: 04-04 16:50 | Nominalny czas: 1.50h | Planowany start: 29-03 11:07 | Planowany koniec: 29-03 12:59 | Planowany czas: 1.88h
+  \item [\textbf{14666}] \textbf{Create ad copy \#5008 (Marketing)} | Prio: \texttt{medium} | Deadline: 05-04 11:15 | Nominalny czas: 2.00h | Planowany start: 29-03 13:00 | Planowany koniec: 29-03 15:30 | Planowany czas: 2.50h
+  \item [\textbf{14652}] \textbf{Create ad copy \#1938 (Marketing) (Part 3)} | Prio: \texttt{medium} | Deadline: 05-04 11:20 | Nominalny czas: 2.00h | Planowany start: 29-03 15:30 | Planowany koniec: 29-03 18:00 | Planowany czas: 2.50h
+  \item [\textbf{14597}] \textbf{Deploy to staging \#6909 (IT)} | Prio: \texttt{urgent} | Deadline: 05-04 11:35 | Nominalny czas: 3.00h | Planowany start: 30-03 08:00 | Planowany koniec: 30-03 11:45 | Planowany czas: 3.75h
+  \item [\textbf{14701}] \textbf{Update employee records \#7115 (HR) (Part 4)} | Prio: \texttt{low} | Deadline: 05-04 11:45 | Nominalny czas: 0.50h | Planowany start: 30-03 11:45 | Planowany koniec: 30-03 12:22 | Planowany czas: 0.62h
+  \item [\textbf{14703}] \textbf{Code feature (App QA Cycle)} | Prio: \texttt{low} | Deadline: 05-04 12:20 | Nominalny czas: 0.17h | Planowany start: 30-03 12:22 | Planowany koniec: 30-03 12:34 | Planowany czas: 0.21h
+  \item [\textbf{14672}] \textbf{Write report \#3529 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 05-04 16:00 | Nominalny czas: 1.00h | Planowany start: 30-03 12:35 | Planowany koniec: 30-03 13:50 | Planowany czas: 1.25h
+  \item [\textbf{14603}] \textbf{Design dashboard \#2401 (R\&D) (Part 4)} | Prio: \texttt{urgent} | Deadline: 06-04 09:30 | Nominalny czas: 0.50h | Planowany start: 30-03 13:50 | Planowany koniec: 30-03 14:27 | Planowany czas: 0.62h
+  \item [\textbf{14610}] \textbf{Team meeting \#1839 (HR) (Part 2)} | Prio: \texttt{high} | Deadline: 06-04 10:30 | Nominalny czas: 1.00h | Planowany start: 30-03 14:27 | Planowany koniec: 30-03 15:42 | Planowany czas: 1.25h
+  \item [\textbf{14695}] \textbf{Write proposal (App QA Cycle)} | Prio: \texttt{low} | Deadline: 06-04 11:10 | Nominalny czas: 1.00h | Planowany start: 30-03 15:42 | Planowany koniec: 30-03 16:57 | Planowany czas: 1.25h
+  \item [\textbf{14607}] \textbf{Campaign review \#2685 (Marketing) (Part 1)} | Prio: \texttt{urgent} | Deadline: 06-04 11:40 | Nominalny czas: 1.00h | Planowany start: 31-03 08:00 | Planowany koniec: 31-03 09:15 | Planowany czas: 1.25h
+  \item [\textbf{14629}] \textbf{Write proposal (CRM Update)} | Prio: \texttt{high} | Deadline: 06-04 11:55 | Nominalny czas: 1.00h | Planowany start: 31-03 09:15 | Planowany koniec: 31-03 10:30 | Planowany czas: 1.25h
+  \item [\textbf{14600}] \textbf{Write proposal \#4793 (Operations) (Part 5)} | Prio: \texttt{urgent} | Deadline: 12-04 16:25 | Nominalny czas: 3.00h | Planowany start: 31-03 10:30 | Planowany koniec: 31-03 12:45 | Planowany czas: 2.25h
+  \item [\textbf{14658}] \textbf{Update employee records \#4369 (HR) (Part 6)} | Prio: \texttt{medium} | Deadline: 06-04 11:55 | Nominalny czas: 1.00h | Planowany start: 31-03 12:45 | Planowany koniec: 31-03 14:00 | Planowany czas: 1.25h
+  \item [\textbf{14645}] \textbf{Code feature \#3295 (Operations) (Part 5)} | Prio: \texttt{medium} | Deadline: 06-04 12:50 | Nominalny czas: 1.00h | Planowany start: 31-03 14:00 | Planowany koniec: 31-03 15:15 | Planowany czas: 1.25h
+  \item [\textbf{14684}] \textbf{Write proposal \#4636 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 06-04 15:45 | Nominalny czas: 2.50h | Planowany start: 31-03 15:15 | Planowany koniec: 31-03 18:22 | Planowany czas: 3.12h
+  \item [\textbf{14602}] \textbf{Create ad copy \#6415 (Marketing) (Part 4)} | Prio: \texttt{urgent} | Deadline: 13-04 12:25 | Nominalny czas: 1.00h | Planowany start: 03-04 08:00 | Planowany koniec: 03-04 08:45 | Planowany czas: 0.75h
+  \item [\textbf{14626}] \textbf{Code feature \#5655 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 06-04 16:50 | Nominalny czas: 2.50h | Planowany start: 03-04 08:45 | Planowany koniec: 03-04 11:52 | Planowany czas: 3.12h
+  \item [\textbf{14683}] \textbf{Code feature \#6648 (IT)} | Prio: \texttt{low} | Deadline: 07-04 09:55 | Nominalny czas: 3.00h | Planowany start: 03-04 11:52 | Planowany koniec: 03-04 15:37 | Planowany czas: 3.75h
+  \item [\textbf{14609}] \textbf{Write report \#7278 (Finance) (Part 1)} | Prio: \texttt{high} | Deadline: 14-04 12:35 | Nominalny czas: 1.00h | Planowany start: 03-04 15:37 | Planowany koniec: 03-04 16:22 | Planowany czas: 0.75h
+  \item [\textbf{14637}] \textbf{Bug fixing \#5838 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 14-04 15:35 | Nominalny czas: 1.00h | Planowany start: 04-04 08:00 | Planowany koniec: 04-04 08:45 | Planowany czas: 0.75h
+  \item [\textbf{14642}] \textbf{Write report \#7492 (Finance) (Part 1)} | Prio: \texttt{medium} | Deadline: 14-04 15:40 | Nominalny czas: 3.00h | Planowany start: 04-04 08:45 | Planowany koniec: 04-04 11:00 | Planowany czas: 2.25h
+  \item [\textbf{14617}] \textbf{Team meeting \#2813 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 14-04 15:55 | Nominalny czas: 1.50h | Planowany start: 04-04 11:00 | Planowany koniec: 04-04 12:07 | Planowany czas: 1.12h
+  \item [\textbf{14646}] \textbf{Code feature \#5174 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 14-04 16:30 | Nominalny czas: 1.50h | Planowany start: 04-04 12:07 | Planowany koniec: 04-04 13:14 | Planowany czas: 1.12h
+  \item [\textbf{14648}] \textbf{Onboarding \#7202 (HR) (Part 2)} | Prio: \texttt{medium} | Deadline: 17-04 09:10 | Nominalny czas: 0.50h | Planowany start: 04-04 13:15 | Planowany koniec: 04-04 13:37 | Planowany czas: 0.38h
+  \item [\textbf{14669}] \textbf{Write proposal \#6080 (R\&D) (Part 1)} | Prio: \texttt{medium} | Deadline: 17-04 11:00 | Nominalny czas: 1.50h | Planowany start: 04-04 13:37 | Planowany koniec: 04-04 14:44 | Planowany czas: 1.12h
+  \item [\textbf{14670}] \textbf{Update employee records \#2839 (HR) (Part 1)} | Prio: \texttt{medium} | Deadline: 17-04 11:45 | Nominalny czas: 3.00h | Planowany start: 04-04 14:45 | Planowany koniec: 04-04 17:00 | Planowany czas: 2.25h
+  \item [\textbf{14611}] \textbf{Social media update \#2754 (Marketing) (Part 3)} | Prio: \texttt{high} | Deadline: 17-04 15:05 | Nominalny czas: 2.50h | Planowany start: 05-04 08:00 | Planowany koniec: 05-04 09:52 | Planowany czas: 1.88h
+  \item [\textbf{14696}] \textbf{API Integration \#5924 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 17-04 15:15 | Nominalny czas: 2.00h | Planowany start: 05-04 09:52 | Planowany koniec: 05-04 11:22 | Planowany czas: 1.50h
+  \item [\textbf{14628}] \textbf{Write proposal \#2011 (Marketing) (Part 5)} | Prio: \texttt{high} | Deadline: 17-04 16:30 | Nominalny czas: 2.00h | Planowany start: 05-04 11:22 | Planowany koniec: 05-04 12:52 | Planowany czas: 1.50h
+  \item [\textbf{14654}] \textbf{Write proposal \#3255 (Operations) (Part 6)} | Prio: \texttt{medium} | Deadline: 17-04 16:50 | Nominalny czas: 1.00h | Planowany start: 05-04 12:52 | Planowany koniec: 05-04 13:37 | Planowany czas: 0.75h
+  \item [\textbf{14677}] \textbf{Create ad copy \#8573 (Marketing) (Part 3)} | Prio: \texttt{medium} | Deadline: 18-04 11:10 | Nominalny czas: 2.50h | Planowany start: 05-04 13:37 | Planowany koniec: 05-04 15:29 | Planowany czas: 1.88h
+  \item [\textbf{14612}] \textbf{Interview candidate \#9574 (HR) (Part 4)} | Prio: \texttt{high} | Deadline: 18-04 12:45 | Nominalny czas: 1.00h | Planowany start: 05-04 15:30 | Planowany koniec: 05-04 16:15 | Planowany czas: 0.75h
+  \item [\textbf{14616}] \textbf{Budget audit \#7909 (Finance) (Part 3)} | Prio: \texttt{high} | Deadline: 18-04 14:55 | Nominalny czas: 2.50h | Planowany start: 06-04 08:00 | Planowany koniec: 06-04 09:52 | Planowany czas: 1.88h
+  \item [\textbf{14664}] \textbf{Code feature \#4399 (Operations) (Part 3)} | Prio: \texttt{medium} | Deadline: 18-04 15:05 | Nominalny czas: 0.50h | Planowany start: 06-04 09:52 | Planowany koniec: 06-04 10:14 | Planowany czas: 0.38h
+  \item [\textbf{14636}] \textbf{Onboarding \#8898 (HR) (Part 4)} | Prio: \texttt{medium} | Deadline: 18-04 15:40 | Nominalny czas: 2.00h | Planowany start: 06-04 10:15 | Planowany koniec: 06-04 11:45 | Planowany czas: 1.50h
+  \item [\textbf{14680}] \textbf{Bug fixing \#5230 (IT) (Part 2)} | Prio: \texttt{low} | Deadline: 19-04 08:30 | Nominalny czas: 1.00h | Planowany start: 06-04 11:45 | Planowany koniec: 06-04 12:30 | Planowany czas: 0.75h
+  \item [\textbf{14678}] \textbf{Invoice processing \#7189 (Finance) (Part 4)} | Prio: \texttt{low} | Deadline: 19-04 10:15 | Nominalny czas: 2.00h | Planowany start: 06-04 12:30 | Planowany koniec: 06-04 14:00 | Planowany czas: 1.50h
+  \item [\textbf{14676}] \textbf{Design dashboard \#4670 (Operations)} | Prio: \texttt{medium} | Deadline: 19-04 11:40 | Nominalny czas: 3.00h | Planowany start: 06-04 14:00 | Planowany koniec: 06-04 16:15 | Planowany czas: 2.25h
+  \item [\textbf{14687}] \textbf{Write report \#5195 (Operations) (Part 4)} | Prio: \texttt{low} | Deadline: 19-04 14:10 | Nominalny czas: 2.50h | Planowany start: 07-04 08:00 | Planowany koniec: 07-04 09:52 | Planowany czas: 1.88h
+  \item [\textbf{14655}] \textbf{Update employee records \#8996 (HR) (Part 4)} | Prio: \texttt{medium} | Deadline: 19-04 16:10 | Nominalny czas: 3.00h | Planowany start: 07-04 09:52 | Planowany koniec: 07-04 12:07 | Planowany czas: 2.25h
+  \item [\textbf{14649}] \textbf{Team meeting \#8336 (R\&D)} | Prio: \texttt{medium} | Deadline: 20-04 10:10 | Nominalny czas: 2.00h | Planowany start: 07-04 12:07 | Planowany koniec: 07-04 13:37 | Planowany czas: 1.50h
+  \item [\textbf{14621}] \textbf{Update employee records \#3097 (HR) (Part 3)} | Prio: \texttt{high} | Deadline: 20-04 15:45 | Nominalny czas: 1.50h | Planowany start: 07-04 13:37 | Planowany koniec: 07-04 14:44 | Planowany czas: 1.12h
+  \item [\textbf{14662}] \textbf{Write proposal \#9016 (Operations) (Part 6)} | Prio: \texttt{medium} | Deadline: 20-04 15:50 | Nominalny czas: 1.50h | Planowany start: 07-04 14:45 | Planowany koniec: 07-04 15:52 | Planowany czas: 1.12h
+  \item [\textbf{14651}] \textbf{Write report \#4883 (Operations) (Part 4)} | Prio: \texttt{medium} | Deadline: 20-04 16:00 | Nominalny czas: 1.50h | Planowany start: 07-04 15:52 | Planowany koniec: 07-04 16:59 | Planowany czas: 1.12h
+  \item [\textbf{14620}] \textbf{API Integration \#6489 (IT)} | Prio: \texttt{high} | Deadline: 20-04 16:20 | Nominalny czas: 2.00h | Planowany start: 10-04 08:00 | Planowany koniec: 10-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14653}] \textbf{Campaign review \#1456 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 21-04 08:30 | Nominalny czas: 0.50h | Planowany start: 10-04 09:30 | Planowany koniec: 10-04 09:52 | Planowany czas: 0.38h
+  \item [\textbf{14644}] \textbf{Budget audit \#7879 (Finance) (Part 2)} | Prio: \texttt{medium} | Deadline: 21-04 09:35 | Nominalny czas: 0.50h | Planowany start: 10-04 09:52 | Planowany koniec: 10-04 10:14 | Planowany czas: 0.38h
+  \item [\textbf{14606}] \textbf{Design dashboard \#9146 (Operations) (Part 4)} | Prio: \texttt{urgent} | Deadline: 21-04 16:25 | Nominalny czas: 1.00h | Planowany start: 10-04 10:15 | Planowany koniec: 10-04 11:00 | Planowany czas: 0.75h
+  \item [\textbf{14650}] \textbf{Create ad copy \#7105 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 16:15 | Nominalny czas: 1.50h | Planowany start: 10-04 11:00 | Planowany koniec: 10-04 13:15 | Planowany czas: 2.25h
+  \item [\textbf{14671}] \textbf{Onboarding \#5231 (HR) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 16:15 | Nominalny czas: 0.50h | Planowany start: 10-04 13:15 | Planowany koniec: 10-04 14:00 | Planowany czas: 0.75h
+  \item [\textbf{14675}] \textbf{Invoice processing \#8566 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 11-04 16:30 | Nominalny czas: 1.00h | Planowany start: 10-04 14:00 | Planowany koniec: 10-04 15:30 | Planowany czas: 1.50h
+  \item [\textbf{14690}] \textbf{Monthly review \#6182 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 12-04 10:35 | Nominalny czas: 3.00h | Planowany start: 10-04 15:30 | Planowany koniec: 10-04 20:00 | Planowany czas: 4.50h
+  \item [\textbf{14674}] \textbf{Write report \#5908 (R\&D) (Part 2)} | Prio: \texttt{medium} | Deadline: 12-04 11:55 | Nominalny czas: 3.00h | Planowany start: 11-04 08:00 | Planowany koniec: 11-04 12:30 | Planowany czas: 4.50h
+  \item [\textbf{14599}] \textbf{Campaign review \#2881 (Marketing) (Part 3)} | Prio: \texttt{urgent} | Deadline: 12-04 13:40 | Nominalny czas: 1.00h | Planowany start: 11-04 12:30 | Planowany koniec: 11-04 14:00 | Planowany czas: 1.50h
+  \item [\textbf{14692}] \textbf{Deploy to staging \#1596 (IT) (Part 5)} | Prio: \texttt{low} | Deadline: 12-04 15:00 | Nominalny czas: 0.50h | Planowany start: 11-04 14:00 | Planowany koniec: 11-04 14:45 | Planowany czas: 0.75h
+  \item [\textbf{14613}] \textbf{Bug fixing \#1183 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 13-04 08:30 | Nominalny czas: 1.00h | Planowany start: 11-04 14:45 | Planowany koniec: 11-04 16:15 | Planowany czas: 1.50h
+  \item [\textbf{14634}] \textbf{Write report \#8603 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 13-04 09:00 | Nominalny czas: 1.50h | Planowany start: 12-04 08:00 | Planowany koniec: 12-04 10:15 | Planowany czas: 2.25h
+  \item [\textbf{14601}] \textbf{Write report \#7222 (R\&D) (Part 1)} | Prio: \texttt{urgent} | Deadline: 13-04 11:05 | Nominalny czas: 1.00h | Planowany start: 12-04 10:15 | Planowany koniec: 12-04 11:45 | Planowany czas: 1.50h
+  \item [\textbf{14638}] \textbf{Team meeting \#4914 (R\&D) (Part 8)} | Prio: \texttt{medium} | Deadline: 13-04 14:20 | Nominalny czas: 0.50h | Planowany start: 12-04 11:45 | Planowany koniec: 12-04 12:30 | Planowany czas: 0.75h
+  \item [\textbf{14661}] \textbf{Code feature \#9358 (Operations) (Part 5)} | Prio: \texttt{medium} | Deadline: 14-04 08:45 | Nominalny czas: 2.50h | Planowany start: 12-04 12:30 | Planowany koniec: 12-04 16:15 | Planowany czas: 3.75h
+  \item [\textbf{14691}] \textbf{Design dashboard \#4318 (R\&D) (Part 2)} | Prio: \texttt{low} | Deadline: 30-03 15:35 | Nominalny czas: 2.00h | Planowany start: 13-04 08:00 | Planowany koniec: 13-04 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14659}] \textbf{Budget audit \#9644 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 30-03 16:50 | Nominalny czas: 3.00h | Planowany start: 13-04 09:00 | Planowany koniec: 13-04 10:30 | Planowany czas: 1.50h
+  \item [\textbf{14660}] \textbf{Write proposal \#4479 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 30-03 16:50 | Nominalny czas: 3.00h | Planowany start: 13-04 10:30 | Planowany koniec: 13-04 12:00 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 13-04 12:00 -- 13-04 12:25
+  \item [\textbf{14641}] \textbf{Team meeting \#4325 (HR) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 10:35 | Nominalny czas: 3.00h | Planowany start: 13-04 12:24 | Planowany koniec: 13-04 13:54 | Planowany czas: 1.50h
+  \item [\textbf{14640}] \textbf{Write report \#4677 (R\&D) (Part 5)} | Prio: \texttt{medium} | Deadline: 31-03 11:15 | Nominalny czas: 1.00h | Planowany start: 13-04 13:54 | Planowany koniec: 13-04 14:24 | Planowany czas: 0.50h
+  \item [\textbf{14615}] \textbf{Monthly review \#6632 (Finance) (Part 4)} | Prio: \texttt{high} | Deadline: 31-03 11:30 | Nominalny czas: 1.50h | Planowany start: 13-04 14:24 | Planowany koniec: 13-04 15:09 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 13-04 15:09 -- 13-04 15:34
+  \item [\textbf{14681}] \textbf{Code review \#6771 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 10-04 14:20 | Nominalny czas: 1.00h | Planowany start: 13-04 15:34 | Planowany koniec: 13-04 17:49 | Planowany czas: 2.25h
+  \item [\textbf{14665}] \textbf{Code review \#8421 (IT) (Part 3)} | Prio: \texttt{medium} | Deadline: 31-03 11:30 | Nominalny czas: 0.50h | Planowany start: 14-04 08:00 | Planowany koniec: 14-04 08:15 | Planowany czas: 0.25h
+  \item [\textbf{14656}] \textbf{Monthly review \#9438 (Finance) (Part 5)} | Prio: \texttt{medium} | Deadline: 31-03 13:15 | Nominalny czas: 0.50h | Planowany start: 14-04 08:15 | Planowany koniec: 14-04 08:30 | Planowany czas: 0.25h
+  \item [\textbf{14643}] \textbf{Code feature \#5851 (IT) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 15:15 | Nominalny czas: 1.50h | Planowany start: 14-04 08:30 | Planowany koniec: 14-04 09:15 | Planowany czas: 0.75h
+  \item [\textbf{14697}] \textbf{Deploy to staging \#1886 (IT) (Part 5)} | Prio: \texttt{low} | Deadline: 31-03 15:45 | Nominalny czas: 1.50h | Planowany start: 14-04 09:15 | Planowany koniec: 14-04 10:00 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 14-04 10:00 -- 14-04 10:25
+  \item [\textbf{14631}] \textbf{Bug fixing \#5754 (IT) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 15:55 | Nominalny czas: 1.50h | Planowany start: 14-04 10:24 | Planowany koniec: 14-04 11:09 | Planowany czas: 0.75h
+  \item [\textbf{14673}] \textbf{Write proposal \#3842 (Marketing) (Part 2)} | Prio: \texttt{medium} | Deadline: 03-04 11:30 | Nominalny czas: 2.00h | Planowany start: 14-04 11:09 | Planowany koniec: 14-04 12:09 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 14-04 12:09 -- 14-04 12:34
+  \item [\textbf{14625}] \textbf{Campaign review \#4673 (Marketing) (Part 3)} | Prio: \texttt{high} | Deadline: 07-04 10:25 | Nominalny czas: 2.00h | Planowany start: 14-04 12:34 | Planowany koniec: 14-04 13:34 | Planowany czas: 1.00h
+  \item [\textbf{14614}] \textbf{Write proposal \#8253 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 07-04 12:25 | Nominalny czas: 0.50h | Planowany start: 14-04 13:34 | Planowany koniec: 14-04 13:49 | Planowany czas: 0.25h
+  \item [\textbf{14633}] \textbf{Write report \#7368 (R\&D) (Part 1)} | Prio: \texttt{medium} | Deadline: 10-04 08:40 | Nominalny czas: 3.00h | Planowany start: 14-04 13:49 | Planowany koniec: 14-04 15:19 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 14-04 15:19 -- 14-04 15:44
+  \item [\textbf{14630}] \textbf{Budget audit \#5289 (Finance) (Part 4)} | Prio: \texttt{medium} | Deadline: 10-04 08:50 | Nominalny czas: 1.50h | Planowany start: 14-04 15:44 | Planowany koniec: 14-04 16:29 | Planowany czas: 0.75h
+  \item [\textbf{14694}] \textbf{Budget audit \#8482 (Finance) (Part 4)} | Prio: \texttt{low} | Deadline: 10-04 11:05 | Nominalny czas: 1.00h | Planowany start: 17-04 08:00 | Planowany koniec: 17-04 08:30 | Planowany czas: 0.50h
+  \item [\textbf{14700}] \textbf{Social media update \#6117 (Marketing) (Part 2)} | Prio: \texttt{low} | Deadline: 10-04 15:30 | Nominalny czas: 2.00h | Planowany start: 17-04 08:30 | Planowany koniec: 17-04 09:30 | Planowany czas: 1.00h
+  \item [\textbf{14685}] \textbf{Write report \#9475 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 10-04 15:35 | Nominalny czas: 1.50h | Planowany start: 17-04 09:30 | Planowany koniec: 17-04 10:15 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 17-04 10:15 -- 17-04 10:40
+  \item [\textbf{14608}] \textbf{Code feature \#3295 (Operations) (Part 3)} | Prio: \texttt{high} | Deadline: 11-04 12:40 | Nominalny czas: 1.00h | Planowany start: 17-04 10:39 | Planowany koniec: 17-04 11:09 | Planowany czas: 0.50h
+  \item [\textbf{14668}] \textbf{Write proposal \#2492 (Operations) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 14:05 | Nominalny czas: 2.50h | Planowany start: 17-04 11:09 | Planowany koniec: 17-04 12:24 | Planowany czas: 1.25h
+  \item [\textbf{14699}] \textbf{Code review \#3678 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 11-04 15:00 | Nominalny czas: 2.50h | Planowany start: 17-04 12:24 | Planowany koniec: 17-04 13:39 | Planowany czas: 1.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 17-04 13:39 -- 17-04 14:04
+  \item [\textbf{14618}] \textbf{Monthly review \#2318 (Finance) (Part 2)} | Prio: \texttt{high} | Deadline: 28-03 15:35 | Nominalny czas: 2.50h | Planowany start: 17-04 14:04 | Planowany koniec: 17-04 15:56 | Planowany czas: 1.88h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 17-04 15:57 -- 17-04 16:22
+  \item [\textbf{14624}] \textbf{Team meeting \#8516 (HR) (Part 3)} | Prio: \texttt{high} | Deadline: 29-03 10:50 | Nominalny czas: 1.00h | Planowany start: 18-04 08:00 | Planowany koniec: 18-04 08:45 | Planowany czas: 0.75h
+  \item [\textbf{14622}] \textbf{Invoice processing \#9219 (Finance) (Part 3)} | Prio: \texttt{high} | Deadline: 27-03 16:00 | Nominalny czas: 1.50h | Planowany start: 18-04 08:45 | Planowany koniec: 18-04 09:30 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 18-04 09:30 -- 18-04 09:55
+  \item [\textbf{14647}] \textbf{Bug fixing (Q4 Review Report)} | Prio: \texttt{medium} | Deadline: 27-03 16:00 | Nominalny czas: 3.00h | Planowany start: 18-04 09:54 | Planowany koniec: 18-04 11:24 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 18-04 11:24 -- 18-04 11:49
+  \item [\textbf{14605}] \textbf{Code feature \#1600 (IT)} | Prio: \texttt{urgent} | Deadline: 27-03 16:50 | Nominalny czas: 3.00h | Planowany start: 18-04 11:49 | Planowany koniec: 18-04 13:19 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 18-04 13:19 -- 18-04 13:44
+  \item [\textbf{14693}] \textbf{Budget audit \#5568 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 28-03 12:45 | Nominalny czas: 1.50h | Planowany start: 18-04 13:44 | Planowany koniec: 18-04 14:29 | Planowany czas: 0.75h
+  \item [\textbf{14679}] \textbf{Create ad copy \#9853 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 28-03 15:00 | Nominalny czas: 1.00h | Planowany start: 18-04 14:29 | Planowany koniec: 18-04 14:59 | Planowany czas: 0.50h
+  \item [\textbf{14623}] \textbf{Deploy to staging \#2785 (IT) (Part 2)} | Prio: \texttt{high} | Deadline: 29-03 13:50 | Nominalny czas: 0.50h | Planowany start: 18-04 14:59 | Planowany koniec: 18-04 15:14 | Planowany czas: 0.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 18-04 15:14 -- 18-04 15:39
+  \item [\textbf{14686}] \textbf{Deploy to staging \#1267 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 29-03 15:20 | Nominalny czas: 3.00h | Planowany start: 18-04 15:39 | Planowany koniec: 18-04 17:09 | Planowany czas: 1.50h
+  \item [\textbf{14619}] \textbf{Budget audit \#4294 (Finance) (Part 1)} | Prio: \texttt{high} | Deadline: 30-03 12:15 | Nominalny czas: 1.00h | Planowany start: 19-04 08:00 | Planowany koniec: 19-04 08:30 | Planowany czas: 0.50h
+  \item [\textbf{14688}] \textbf{Team meeting \#3158 (R\&D) (Part 4)} | Prio: \texttt{low} | Deadline: 27-03 12:45 | Nominalny czas: 2.50h | Planowany start: 19-04 08:30 | Planowany koniec: 19-04 14:07 | Planowany czas: 5.62h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 19-04 14:07 -- 19-04 14:32
+  \item [\textbf{14682}] \textbf{Team meeting (Q4 Review Report)} | Prio: \texttt{low} | Deadline: 27-03 09:55 | Nominalny czas: 3.00h | Planowany start: 19-04 14:32 | Planowany koniec: 20-04 01:02 | Planowany czas: 10.50h
+  \item [\textbf{14627}] \textbf{Monthly review \#1765 (Finance) (Part 5)} | Prio: \texttt{high} | Deadline: 27-03 10:35 | Nominalny czas: 1.50h | Planowany start: 20-04 08:00 | Planowany koniec: 20-04 13:15 | Planowany czas: 5.25h
+\end{enumerate}
+}
+
+\subsubsection*{2. Porównanie Harmonogramu: Plan Bazowy vs Przeplanowanie po Zakłóceniu}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Ewolucja harmonogramu dla algorytmu PPO (Pracownik \#31)}
+\label{tab:case_study_ppo_u31}
+\begin{tabular}{|r|c|c|l|}
+\hline
+\textbf{ID Zadania} & \textbf{Generacja 0 (Plan)} & \textbf{Generacja 1 (Po zakłóceniu)} & \textbf{Status / Zmiana} \\ \hline
+14657 & 27-03 08:00 -- 27-03 09:15 & \textbf{27-03 08:00 -- 27-03 08:43} & \textbf{Ukończone} \\ 
+14635 & 27-03 09:15 -- 27-03 13:00 & \textbf{27-03 08:43 -- 27-03 10:47} & \textbf{Ukończone} \\ 
+14667 & 27-03 13:00 -- 27-03 14:52 & \textbf{27-03 10:48 -- 27-03 11:59} & \textbf{Ukończone} \\ 
+14702 & 27-03 14:52 -- 27-03 16:44 & \textbf{27-03 11:59 -- 27-03 13:22} & \textbf{Ukończone} \\ 
+14604 & 28-03 08:00 -- 28-03 10:30 & \textbf{27-03 13:23 -- 27-03 16:24} & \textbf{Ukończone} \\ 
+14663 & 28-03 10:30 -- 28-03 11:07 & \textbf{28-03 08:00 -- 28-03 08:29} & \textbf{Ukończone} \\ 
+14698 & 28-03 11:07 -- 28-03 14:52 & \textbf{28-03 08:29 -- 28-03 12:23} & \textbf{Ukończone} \\ 
+14639 & 28-03 14:52 -- 28-03 17:59 & \textbf{28-03 12:24 -- 28-03 19:39} & \textbf{Ukończone} \\ 
+14689 & 29-03 08:00 -- 29-03 09:15 & \textbf{29-03 08:00 -- 29-03 09:52} & \textbf{Ukończone} \\ 
+14598 & 29-03 09:15 -- 29-03 11:07 & \textbf{29-03 09:52 -- 29-03 14:22} & \textbf{Ukończone} \\ 
+14632 & 29-03 11:07 -- 29-03 12:59 & \textbf{29-03 14:22 -- 29-03 20:23} & \textbf{Ukończone} \\ 
+14666 & 29-03 13:00 -- 29-03 15:30 & \textbf{30-03 08:00 -- 30-03 15:58} & \textbf{Ukończone} \\ 
+14652 & 29-03 15:30 -- 29-03 18:00 & \textbf{30-03 15:58 -- 30-03 23:58} & \textbf{Ukończone} \\ 
+14597 & 30-03 08:00 -- 30-03 11:45 & \textbf{31-03 08:00 -- 31-03 20:00} & \textbf{Ukończone} \\ 
+14701 & 30-03 11:45 -- 30-03 12:22 & \textbf{03-04 08:00 -- 03-04 10:00} & \textbf{Ukończone} \\ 
+14703 & 30-03 12:22 -- 30-03 12:34 & 03-04 12:30 -- 03-04 12:42 & Przesunięcie (+96.1h) \\ 
+14672 & 30-03 12:35 -- 30-03 13:50 & 03-04 12:43 -- 03-04 13:58 & Przesunięcie (+96.1h) \\ 
+14603 & 30-03 13:50 -- 30-03 14:27 & 03-04 13:58 -- 03-04 14:35 & Przesunięcie (+96.1h) \\ 
+14610 & 30-03 14:27 -- 30-03 15:42 & 03-04 14:35 -- 03-04 15:50 & Przesunięcie (+96.1h) \\ 
+14695 & 30-03 15:42 -- 30-03 16:57 & 03-04 15:50 -- 03-04 17:05 & Przesunięcie (+96.1h) \\ 
+14607 & 31-03 08:00 -- 31-03 09:15 & 04-04 15:07 -- 04-04 16:22 & Przesunięcie (+103.1h) \\ 
+14629 & 31-03 09:15 -- 31-03 10:30 & 17-04 10:00 -- 17-04 10:30 & Przesunięcie (+408.8h) \\ 
+14600 & 31-03 10:30 -- 31-03 12:45 & 04-04 09:07 -- 04-04 11:22 & Przesunięcie (+94.6h) \\ 
+14658 & 31-03 12:45 -- 31-03 14:00 & 17-04 10:30 -- 17-04 11:00 & Przesunięcie (+405.8h) \\ 
+14645 & 31-03 14:00 -- 31-03 15:15 & 17-04 11:00 -- 17-04 11:30 & Przesunięcie (+405.0h) \\ 
+14684 & 31-03 15:15 -- 31-03 18:22 & 17-04 11:30 -- 17-04 12:45 & Przesunięcie (+404.2h) \\ 
+14602 & 03-04 08:00 -- 03-04 08:45 & 04-04 14:00 -- 04-04 14:45 & Przesunięcie (+30.0h) \\ 
+14626 & 03-04 08:45 -- 03-04 11:52 & 17-04 12:45 -- 17-04 14:00 & Przesunięcie (+340.0h) \\ 
+14683 & 03-04 11:52 -- 03-04 15:37 & 17-04 14:00 -- 17-04 15:30 & Przesunięcie (+338.1h) \\ 
+14609 & 03-04 15:37 -- 03-04 16:22 & 05-04 08:00 -- 05-04 08:45 & Przesunięcie (+40.4h) \\ 
+14637 & 04-04 08:00 -- 04-04 08:45 & 05-04 08:45 -- 05-04 09:30 & Przesunięcie (+24.8h) \\ 
+14642 & 04-04 08:45 -- 04-04 11:00 & 05-04 09:30 -- 05-04 11:45 & Przesunięcie (+24.8h) \\ 
+14617 & 04-04 11:00 -- 04-04 12:07 & 05-04 11:45 -- 05-04 12:52 & Przesunięcie (+24.8h) \\ 
+14646 & 04-04 12:07 -- 04-04 13:14 & 05-04 12:52 -- 05-04 13:59 & Przesunięcie (+24.8h) \\ 
+14648 & 04-04 13:15 -- 04-04 13:37 & 05-04 14:00 -- 05-04 14:22 & Przesunięcie (+24.8h) \\ 
+14669 & 04-04 13:37 -- 04-04 14:44 & 05-04 14:22 -- 05-04 15:29 & Przesunięcie (+24.8h) \\ 
+14670 & 04-04 14:45 -- 04-04 17:00 & 05-04 15:30 -- 05-04 17:45 & Przesunięcie (+24.8h) \\ 
+14611 & 05-04 08:00 -- 05-04 09:52 & 06-04 08:00 -- 06-04 09:52 & Przesunięcie (+24.0h) \\ 
+14696 & 05-04 09:52 -- 05-04 11:22 & 06-04 09:52 -- 06-04 11:22 & Przesunięcie (+24.0h) \\ 
+14628 & 05-04 11:22 -- 05-04 12:52 & 06-04 11:22 -- 06-04 12:52 & Przesunięcie (+24.0h) \\ 
+14654 & 05-04 12:52 -- 05-04 13:37 & 06-04 12:52 -- 06-04 13:37 & Przesunięcie (+24.0h) \\ 
+14677 & 05-04 13:37 -- 05-04 15:29 & 06-04 13:37 -- 06-04 15:29 & Przesunięcie (+24.0h) \\ 
+14612 & 05-04 15:30 -- 05-04 16:15 & 06-04 15:30 -- 06-04 16:15 & Przesunięcie (+24.0h) \\ 
+14616 & 06-04 08:00 -- 06-04 09:52 & 07-04 08:00 -- 07-04 09:52 & Przesunięcie (+24.0h) \\ 
+14664 & 06-04 09:52 -- 06-04 10:14 & 07-04 09:52 -- 07-04 10:14 & Przesunięcie (+24.0h) \\ 
+14636 & 06-04 10:15 -- 06-04 11:45 & 07-04 10:15 -- 07-04 11:45 & Przesunięcie (+24.0h) \\ 
+14680 & 06-04 11:45 -- 06-04 12:30 & 07-04 11:45 -- 07-04 12:30 & Przesunięcie (+24.0h) \\ 
+14678 & 06-04 12:30 -- 06-04 14:00 & 07-04 12:30 -- 07-04 14:00 & Przesunięcie (+24.0h) \\ 
+14676 & 06-04 14:00 -- 06-04 16:15 & 07-04 14:00 -- 07-04 16:15 & Przesunięcie (+24.0h) \\ 
+14687 & 07-04 08:00 -- 07-04 09:52 & 10-04 08:00 -- 10-04 09:52 & Przesunięcie (+72.0h) \\ 
+14655 & 07-04 09:52 -- 07-04 12:07 & 10-04 09:52 -- 10-04 12:07 & Przesunięcie (+72.0h) \\ 
+14649 & 07-04 12:07 -- 07-04 13:37 & 10-04 12:07 -- 10-04 13:37 & Przesunięcie (+72.0h) \\ 
+14621 & 07-04 13:37 -- 07-04 14:44 & 10-04 13:37 -- 10-04 14:44 & Przesunięcie (+72.0h) \\ 
+14662 & 07-04 14:45 -- 07-04 15:52 & 10-04 14:45 -- 10-04 15:52 & Przesunięcie (+72.0h) \\ 
+14651 & 07-04 15:52 -- 07-04 16:59 & 10-04 15:52 -- 10-04 16:59 & Przesunięcie (+72.0h) \\ 
+14620 & 10-04 08:00 -- 10-04 09:30 & 11-04 08:00 -- 11-04 09:30 & Przesunięcie (+24.0h) \\ 
+14653 & 10-04 09:30 -- 10-04 09:52 & 11-04 09:30 -- 11-04 09:52 & Przesunięcie (+24.0h) \\ 
+14644 & 10-04 09:52 -- 10-04 10:14 & 11-04 09:52 -- 11-04 10:14 & Przesunięcie (+24.0h) \\ 
+14606 & 10-04 10:15 -- 10-04 11:00 & 11-04 10:15 -- 11-04 11:00 & Przesunięcie (+24.0h) \\ 
+14650 & 10-04 11:00 -- 10-04 13:15 & 13-04 08:00 -- 13-04 10:15 & Przesunięcie (+69.0h) \\ 
+14671 & 10-04 13:15 -- 10-04 14:00 & 18-04 09:30 -- 18-04 09:45 & Przesunięcie (+188.2h) \\ 
+14675 & 10-04 14:00 -- 10-04 15:30 & 13-04 11:39 -- 13-04 13:09 & Przesunięcie (+69.7h) \\ 
+14690 & 10-04 15:30 -- 10-04 20:00 & 18-04 09:45 -- 18-04 11:15 & Przesunięcie (+186.2h) \\ 
+14674 & 11-04 08:00 -- 11-04 12:30 & 13-04 15:04 -- 13-04 19:34 & Przesunięcie (+55.1h) \\ 
+14599 & 11-04 12:30 -- 11-04 14:00 & 04-04 08:00 -- 04-04 08:45 & Przesunięcie (-172.5h) \\ 
+14692 & 11-04 14:00 -- 11-04 14:45 & 04-04 08:45 -- 04-04 09:07 & Przesunięcie (-173.2h) \\ 
+14613 & 11-04 14:45 -- 11-04 16:15 & 04-04 11:22 -- 04-04 12:07 & Przesunięcie (-171.4h) \\ 
+14634 & 12-04 08:00 -- 12-04 10:15 & 04-04 12:07 -- 04-04 13:14 & Przesunięcie (-187.9h) \\ 
+14601 & 12-04 10:15 -- 12-04 11:45 & 04-04 13:15 -- 04-04 14:00 & Przesunięcie (-189.0h) \\ 
+14638 & 12-04 11:45 -- 12-04 12:30 & 04-04 14:45 -- 04-04 15:07 & Przesunięcie (-189.0h) \\ 
+14661 & 12-04 12:30 -- 12-04 16:15 & 18-04 11:39 -- 18-04 12:54 & Przesunięcie (+143.2h) \\ 
+14691 & 13-04 08:00 -- 13-04 09:00 & 13-04 10:15 -- 13-04 11:15 & Przesunięcie (+2.2h) \\ 
+14659 & 13-04 09:00 -- 13-04 10:30 & 13-04 13:09 -- 13-04 14:39 & Przesunięcie (+4.2h) \\ 
+14660 & 13-04 10:30 -- 13-04 12:00 & 14-04 08:00 -- 14-04 09:30 & Przesunięcie (+21.5h) \\ 
+14641 & 13-04 12:24 -- 13-04 13:54 & 14-04 09:30 -- 14-04 11:00 & Przesunięcie (+21.1h) \\ 
+14640 & 13-04 13:54 -- 13-04 14:24 & 14-04 11:00 -- 14-04 11:30 & Przesunięcie (+21.1h) \\ 
+14615 & 13-04 14:24 -- 13-04 15:09 & 14-04 11:30 -- 14-04 12:15 & Przesunięcie (+21.1h) \\ 
+14681 & 13-04 15:34 -- 13-04 17:49 & 11-04 11:00 -- 11-04 12:30 & Przesunięcie (-52.6h) \\ 
+14665 & 14-04 08:00 -- 14-04 08:15 & 14-04 12:15 -- 14-04 12:30 & Przesunięcie (+4.2h) \\ 
+14656 & 14-04 08:15 -- 14-04 08:30 & 14-04 12:30 -- 14-04 12:45 & Przesunięcie (+4.2h) \\ 
+14643 & 14-04 08:30 -- 14-04 09:15 & 14-04 13:09 -- 14-04 13:54 & Przesunięcie (+4.7h) \\ 
+14697 & 14-04 09:15 -- 14-04 10:00 & 17-04 08:00 -- 17-04 08:45 & Przesunięcie (+70.8h) \\ 
+14631 & 14-04 10:24 -- 14-04 11:09 & 17-04 08:45 -- 17-04 09:30 & Przesunięcie (+70.3h) \\ 
+14673 & 14-04 11:09 -- 14-04 12:09 & 03-04 10:00 -- 03-04 12:30 & Przesunięcie (-265.1h) \\ 
+14625 & 14-04 12:34 -- 14-04 13:34 & 17-04 15:54 -- 17-04 16:54 & Przesunięcie (+75.3h) \\ 
+14614 & 14-04 13:34 -- 14-04 13:49 & 18-04 08:00 -- 18-04 08:15 & Przesunięcie (+90.4h) \\ 
+14633 & 14-04 13:49 -- 14-04 15:19 & 14-04 13:54 -- 14-04 20:39 & Przesunięcie (+0.1h) \\ 
+14630 & 14-04 15:44 -- 14-04 16:29 & 18-04 08:15 -- 18-04 09:00 & Przesunięcie (+88.5h) \\ 
+14694 & 17-04 08:00 -- 17-04 08:30 & 18-04 09:00 -- 18-04 09:30 & Przesunięcie (+25.0h) \\ 
+14700 & 17-04 08:30 -- 17-04 09:30 & 11-04 12:54 -- 11-04 15:54 & Przesunięcie (-139.6h) \\ 
+14685 & 17-04 09:30 -- 17-04 10:15 & 11-04 15:54 -- 11-04 18:09 & Przesunięcie (-137.6h) \\ 
+14608 & 17-04 10:39 -- 17-04 11:09 & 12-04 08:00 -- 12-04 09:30 & Przesunięcie (-122.7h) \\ 
+14668 & 17-04 11:09 -- 17-04 12:24 & 12-04 09:30 -- 12-04 13:15 & Przesunięcie (-121.7h) \\ 
+14699 & 17-04 12:24 -- 17-04 13:39 & 12-04 13:39 -- 12-04 17:24 & Przesunięcie (-118.8h) \\ 
+14618 & 17-04 14:04 -- 17-04 15:56 & 19-04 08:00 -- 19-04 09:52 & Przesunięcie (+41.9h) \\ 
+14624 & 18-04 08:00 -- 18-04 08:45 & 20-04 08:00 -- 20-04 08:30 & Przesunięcie (+48.0h) \\ 
+14622 & 18-04 08:45 -- 18-04 09:30 & 19-04 10:17 -- 19-04 11:02 & Przesunięcie (+25.5h) \\ 
+14647 & 18-04 09:54 -- 18-04 11:24 & 19-04 11:02 -- 19-04 12:32 & Przesunięcie (+25.1h) \\ 
+14605 & 18-04 11:49 -- 18-04 13:19 & 19-04 12:57 -- 19-04 14:27 & Przesunięcie (+25.1h) \\ 
+14693 & 18-04 13:44 -- 18-04 14:29 & 19-04 14:52 -- 19-04 15:37 & Przesunięcie (+25.1h) \\ 
+14679 & 18-04 14:29 -- 18-04 14:59 & 19-04 15:37 -- 19-04 16:07 & Przesunięcie (+25.1h) \\ 
+14623 & 18-04 14:59 -- 18-04 15:14 & 20-04 08:30 -- 20-04 08:45 & Przesunięcie (+41.5h) \\ 
+14686 & 18-04 15:39 -- 18-04 17:09 & 18-04 13:49 -- 18-04 18:19 & Przesunięcie (-1.8h) \\ 
+14619 & 19-04 08:00 -- 19-04 08:30 & 18-04 12:54 -- 18-04 13:24 & Przesunięcie (-19.1h) \\ 
+14688 & 19-04 08:30 -- 19-04 14:07 & 20-04 08:45 -- 20-04 14:22 & Przesunięcie (+24.2h) \\ 
+14682 & 19-04 14:32 -- 20-04 01:02 & 20-04 14:47 -- 21-04 01:17 & Przesunięcie (+24.2h) \\ 
+14627 & 20-04 08:00 -- 20-04 13:15 & 21-04 08:00 -- 21-04 13:15 & Przesunięcie (+24.0h) \\ 
+\hline
+\textbf{16395*} & - & 17-04 09:30 -- 17-04 10:00 & \textbf{Nowe (wstrzyknięte)} \\ 
+\hline
+\end{tabular}
+\\ {\footnotesize * -- Zadanie zakłócające (disruptor). Pogrubiony tekst: zadanie fizycznie wykonane.}
+\end{table}
+
+\vspace{0.8cm}
+\subsection{Algorytm: NSGA-III -- Planowanie Bazowe i Przeplanowanie}
+
+Wstrzyknięcie zadania zakłócającego (ID: 16395) nastąpiło w dniu: \textbf{03-04 08:45}.
+
+\subsubsection*{1. Specyfikacja Planu Bazowego (Generacja 0)}
+{\small
+\begin{enumerate}
+  \item [\textbf{PRZERWA}] Czas trwania: 0.57h, Termin: 27-03 08:00 -- 27-03 08:34
+  \item [\textbf{14697}] \textbf{Deploy to staging \#1886 (IT) (Part 5)} | Prio: \texttt{low} | Deadline: 31-03 15:45 | Nominalny czas: 1.50h | Planowany start: 27-03 08:34 | Planowany koniec: 27-03 09:41 | Planowany czas: 1.12h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.25h, Termin: 27-03 09:41 -- 27-03 09:56
+  \item [\textbf{14654}] \textbf{Write proposal \#3255 (Operations) (Part 6)} | Prio: \texttt{medium} | Deadline: 17-04 16:50 | Nominalny czas: 1.00h | Planowany start: 27-03 09:57 | Planowany koniec: 27-03 12:57 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.38h, Termin: 27-03 12:57 -- 27-03 13:19
+  \item [\textbf{14658}] \textbf{Update employee records \#4369 (HR) (Part 6)} | Prio: \texttt{medium} | Deadline: 06-04 11:55 | Nominalny czas: 1.00h | Planowany start: 27-03 13:19 | Planowany koniec: 27-03 14:04 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.27h, Termin: 27-03 14:04 -- 27-03 14:20
+  \item [\textbf{14684}] \textbf{Write proposal \#4636 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 06-04 15:45 | Nominalny czas: 2.50h | Planowany start: 27-03 14:20 | Planowany koniec: 27-03 15:35 | Planowany czas: 1.25h
+  \item [\textbf{14686}] \textbf{Deploy to staging \#1267 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 29-03 15:20 | Nominalny czas: 3.00h | Planowany start: 27-03 15:35 | Planowany koniec: 27-03 17:32 | Planowany czas: 1.95h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.64h, Termin: 28-03 08:00 -- 28-03 08:38
+  \item [\textbf{14657}] \textbf{Write report \#7961 (Finance) (Part 5)} | Prio: \texttt{medium} | Deadline: 03-04 15:05 | Nominalny czas: 1.00h | Planowany start: 28-03 08:38 | Planowany koniec: 28-03 09:08 | Planowany czas: 0.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.35h, Termin: 28-03 09:08 -- 28-03 09:29
+  \item [\textbf{14618}] \textbf{Monthly review \#2318 (Finance) (Part 2)} | Prio: \texttt{high} | Deadline: 28-03 15:35 | Nominalny czas: 2.50h | Planowany start: 28-03 09:29 | Planowany koniec: 28-03 11:21 | Planowany czas: 1.88h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.14h, Termin: 28-03 11:22 -- 28-03 11:30
+  \item [\textbf{14635}] \textbf{Team meeting (Q4 Review Report)} | Prio: \texttt{medium} | Deadline: 03-04 15:30 | Nominalny czas: 3.00h | Planowany start: 28-03 11:30 | Planowany koniec: 28-03 13:00 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.20h, Termin: 28-03 13:00 -- 28-03 13:11
+  \item [\textbf{14603}] \textbf{Design dashboard \#2401 (R\&D) (Part 4)} | Prio: \texttt{urgent} | Deadline: 06-04 09:30 | Nominalny czas: 0.50h | Planowany start: 28-03 13:12 | Planowany koniec: 28-03 14:04 | Planowany czas: 0.88h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.31h, Termin: 28-03 14:04 -- 28-03 14:22
+  \item [\textbf{14660}] \textbf{Write proposal \#4479 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 30-03 16:50 | Nominalny czas: 3.00h | Planowany start: 28-03 14:23 | Planowany koniec: 28-03 21:08 | Planowany czas: 6.75h
+  \item [\textbf{14651}] \textbf{Write report \#4883 (Operations) (Part 4)} | Prio: \texttt{medium} | Deadline: 20-04 16:00 | Nominalny czas: 1.50h | Planowany start: 29-03 08:00 | Planowany koniec: 29-03 08:45 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.13h, Termin: 29-03 08:45 -- 29-03 08:52
+  \item [\textbf{14614}] \textbf{Write proposal \#8253 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 07-04 12:25 | Nominalny czas: 0.50h | Planowany start: 29-03 08:52 | Planowany koniec: 29-03 09:37 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.32h, Termin: 29-03 09:37 -- 29-03 09:56
+  \item [\textbf{14633}] \textbf{Write report \#7368 (R\&D) (Part 1)} | Prio: \texttt{medium} | Deadline: 10-04 08:40 | Nominalny czas: 3.00h | Planowany start: 29-03 09:56 | Planowany koniec: 29-03 11:26 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 29-03 11:26 -- 29-03 12:10
+  \item [\textbf{14645}] \textbf{Code feature \#3295 (Operations) (Part 5)} | Prio: \texttt{medium} | Deadline: 06-04 12:50 | Nominalny czas: 1.00h | Planowany start: 29-03 12:11 | Planowany koniec: 29-03 12:56 | Planowany czas: 0.75h
+  \item [\textbf{14646}] \textbf{Code feature \#5174 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 14-04 16:30 | Nominalny czas: 1.50h | Planowany start: 29-03 12:56 | Planowany koniec: 29-03 15:11 | Planowany czas: 2.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.38h, Termin: 29-03 15:11 -- 29-03 15:33
+  \item [\textbf{14597}] \textbf{Deploy to staging \#6909 (IT)} | Prio: \texttt{urgent} | Deadline: 05-04 11:35 | Nominalny czas: 3.00h | Planowany start: 29-03 15:34 | Planowany koniec: 29-03 18:34 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.39h, Termin: 30-03 08:00 -- 30-03 08:23
+  \item [\textbf{14616}] \textbf{Budget audit \#7909 (Finance) (Part 3)} | Prio: \texttt{high} | Deadline: 18-04 14:55 | Nominalny czas: 2.50h | Planowany start: 30-03 08:23 | Planowany koniec: 30-03 11:30 | Planowany czas: 3.12h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.20h, Termin: 30-03 11:30 -- 30-03 11:42
+  \item [\textbf{14700}] \textbf{Social media update \#6117 (Marketing) (Part 2)} | Prio: \texttt{low} | Deadline: 10-04 15:30 | Nominalny czas: 2.00h | Planowany start: 30-03 11:43 | Planowany koniec: 30-03 13:13 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.72h, Termin: 30-03 13:13 -- 30-03 13:56
+  \item [\textbf{14622}] \textbf{Invoice processing \#9219 (Finance) (Part 3)} | Prio: \texttt{high} | Deadline: 27-03 16:00 | Nominalny czas: 1.50h | Planowany start: 30-03 13:56 | Planowany koniec: 30-03 14:41 | Planowany czas: 0.75h
+  \item [\textbf{14641}] \textbf{Team meeting \#4325 (HR) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 10:35 | Nominalny czas: 3.00h | Planowany start: 30-03 14:41 | Planowany koniec: 30-03 17:09 | Planowany czas: 2.48h
+  \item [\textbf{14692}] \textbf{Deploy to staging \#1596 (IT) (Part 5)} | Prio: \texttt{low} | Deadline: 12-04 15:00 | Nominalny czas: 0.50h | Planowany start: 31-03 08:00 | Planowany koniec: 31-03 08:37 | Planowany czas: 0.62h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.38h, Termin: 31-03 08:37 -- 31-03 08:59
+  \item [\textbf{14640}] \textbf{Write report \#4677 (R\&D) (Part 5)} | Prio: \texttt{medium} | Deadline: 31-03 11:15 | Nominalny czas: 1.00h | Planowany start: 31-03 09:00 | Planowany koniec: 31-03 10:45 | Planowany czas: 1.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.44h, Termin: 31-03 10:45 -- 31-03 11:11
+  \item [\textbf{14632}] \textbf{Campaign review \#8750 (Marketing) (Part 4)} | Prio: \texttt{medium} | Deadline: 04-04 16:50 | Nominalny czas: 1.50h | Planowany start: 31-03 11:11 | Planowany koniec: 31-03 12:41 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.27h, Termin: 31-03 12:41 -- 31-03 12:57
+  \item [\textbf{14601}] \textbf{Write report \#7222 (R\&D) (Part 1)} | Prio: \texttt{urgent} | Deadline: 13-04 11:05 | Nominalny czas: 1.00h | Planowany start: 31-03 12:57 | Planowany koniec: 31-03 14:42 | Planowany czas: 1.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.20h, Termin: 31-03 14:42 -- 31-03 14:53
+  \item [\textbf{14659}] \textbf{Budget audit \#9644 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 30-03 16:50 | Nominalny czas: 3.00h | Planowany start: 31-03 14:54 | Planowany koniec: 31-03 16:24 | Planowany czas: 1.50h
+  \item [\textbf{14647}] \textbf{Bug fixing (Q4 Review Report)} | Prio: \texttt{medium} | Deadline: 27-03 16:00 | Nominalny czas: 3.00h | Planowany start: 03-04 08:00 | Planowany koniec: 03-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.14h, Termin: 03-04 09:30 -- 03-04 09:38
+  \item [\textbf{14665}] \textbf{Code review \#8421 (IT) (Part 3)} | Prio: \texttt{medium} | Deadline: 31-03 11:30 | Nominalny czas: 0.50h | Planowany start: 03-04 09:38 | Planowany koniec: 03-04 10:30 | Planowany czas: 0.88h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.20h, Termin: 03-04 10:31 -- 03-04 10:42
+  \item [\textbf{14626}] \textbf{Code feature \#5655 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 06-04 16:50 | Nominalny czas: 2.50h | Planowany start: 03-04 10:43 | Planowany koniec: 03-04 12:35 | Planowany czas: 1.88h
+  \item [\textbf{14624}] \textbf{Team meeting \#8516 (HR) (Part 3)} | Prio: \texttt{high} | Deadline: 29-03 10:50 | Nominalny czas: 1.00h | Planowany start: 03-04 12:35 | Planowany koniec: 03-04 13:20 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.60h, Termin: 03-04 13:20 -- 03-04 13:55
+  \item [\textbf{14679}] \textbf{Create ad copy \#9853 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 28-03 15:00 | Nominalny czas: 1.00h | Planowany start: 03-04 13:56 | Planowany koniec: 03-04 14:56 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.74h, Termin: 03-04 14:56 -- 03-04 15:40
+  \item [\textbf{14599}] \textbf{Campaign review \#2881 (Marketing) (Part 3)} | Prio: \texttt{urgent} | Deadline: 12-04 13:40 | Nominalny czas: 1.00h | Planowany start: 03-04 15:40 | Planowany koniec: 03-04 17:10 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.17h, Termin: 04-04 08:00 -- 04-04 08:10
+  \item [\textbf{14701}] \textbf{Update employee records \#7115 (HR) (Part 4)} | Prio: \texttt{low} | Deadline: 05-04 11:45 | Nominalny czas: 0.50h | Planowany start: 04-04 08:10 | Planowany koniec: 04-04 08:47 | Planowany czas: 0.62h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 04-04 08:47 -- 04-04 09:31
+  \item [\textbf{14608}] \textbf{Code feature \#3295 (Operations) (Part 3)} | Prio: \texttt{high} | Deadline: 11-04 12:40 | Nominalny czas: 1.00h | Planowany start: 04-04 09:32 | Planowany koniec: 04-04 10:47 | Planowany czas: 1.25h
+  \item [\textbf{14642}] \textbf{Write report \#7492 (Finance) (Part 1)} | Prio: \texttt{medium} | Deadline: 14-04 15:40 | Nominalny czas: 3.00h | Planowany start: 04-04 10:47 | Planowany koniec: 04-04 12:53 | Planowany czas: 2.10h
+  \item [\textbf{14602}] \textbf{Create ad copy \#6415 (Marketing) (Part 4)} | Prio: \texttt{urgent} | Deadline: 13-04 12:25 | Nominalny czas: 1.00h | Planowany start: 04-04 12:53 | Planowany koniec: 04-04 14:59 | Planowany czas: 2.10h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.27h, Termin: 04-04 14:59 -- 04-04 15:15
+  \item [\textbf{14615}] \textbf{Monthly review \#6632 (Finance) (Part 4)} | Prio: \texttt{high} | Deadline: 31-03 11:30 | Nominalny czas: 1.50h | Planowany start: 04-04 15:16 | Planowany koniec: 04-04 17:31 | Planowany czas: 2.25h
+  \item [\textbf{14699}] \textbf{Code review \#3678 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 11-04 15:00 | Nominalny czas: 2.50h | Planowany start: 05-04 08:00 | Planowany koniec: 05-04 10:30 | Planowany czas: 2.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.63h, Termin: 05-04 10:30 -- 05-04 11:07
+  \item [\textbf{14606}] \textbf{Design dashboard \#9146 (Operations) (Part 4)} | Prio: \texttt{urgent} | Deadline: 21-04 16:25 | Nominalny czas: 1.00h | Planowany start: 05-04 11:07 | Planowany koniec: 05-04 11:52 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.48h, Termin: 05-04 11:52 -- 05-04 12:20
+  \item [\textbf{14617}] \textbf{Team meeting \#2813 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 14-04 15:55 | Nominalny czas: 1.50h | Planowany start: 05-04 12:21 | Planowany koniec: 05-04 13:51 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.20h, Termin: 05-04 13:51 -- 05-04 14:02
+  \item [\textbf{14600}] \textbf{Write proposal \#4793 (Operations) (Part 5)} | Prio: \texttt{urgent} | Deadline: 12-04 16:25 | Nominalny czas: 3.00h | Planowany start: 05-04 14:03 | Planowany koniec: 05-04 16:18 | Planowany czas: 2.25h
+  \item [\textbf{14670}] \textbf{Update employee records \#2839 (HR) (Part 1)} | Prio: \texttt{medium} | Deadline: 17-04 11:45 | Nominalny czas: 3.00h | Planowany start: 06-04 08:00 | Planowany koniec: 06-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.30h, Termin: 06-04 09:30 -- 06-04 09:47
+  \item [\textbf{14644}] \textbf{Budget audit \#7879 (Finance) (Part 2)} | Prio: \texttt{medium} | Deadline: 21-04 09:35 | Nominalny czas: 0.50h | Planowany start: 06-04 09:47 | Planowany koniec: 06-04 10:47 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.11h, Termin: 06-04 10:47 -- 06-04 10:53
+  \item [\textbf{14656}] \textbf{Monthly review \#9438 (Finance) (Part 5)} | Prio: \texttt{medium} | Deadline: 31-03 13:15 | Nominalny czas: 0.50h | Planowany start: 06-04 10:54 | Planowany koniec: 06-04 12:39 | Planowany czas: 1.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.66h, Termin: 06-04 12:39 -- 06-04 13:18
+  \item [\textbf{14671}] \textbf{Onboarding \#5231 (HR) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 16:15 | Nominalny czas: 0.50h | Planowany start: 06-04 13:19 | Planowany koniec: 06-04 14:49 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.32h, Termin: 06-04 14:49 -- 06-04 15:08
+  \item [\textbf{14672}] \textbf{Write report \#3529 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 05-04 16:00 | Nominalny czas: 1.00h | Planowany start: 06-04 15:08 | Planowany koniec: 06-04 15:53 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.27h, Termin: 06-04 15:53 -- 06-04 16:09
+  \item [\textbf{14638}] \textbf{Team meeting \#4914 (R\&D) (Part 8)} | Prio: \texttt{medium} | Deadline: 13-04 14:20 | Nominalny czas: 0.50h | Planowany start: 07-04 08:00 | Planowany koniec: 07-04 09:07 | Planowany czas: 1.12h
+  \item [\textbf{14619}] \textbf{Budget audit \#4294 (Finance) (Part 1)} | Prio: \texttt{high} | Deadline: 30-03 12:15 | Nominalny czas: 1.00h | Planowany start: 07-04 09:07 | Planowany koniec: 07-04 12:37 | Planowany czas: 3.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.64h, Termin: 07-04 12:37 -- 07-04 13:15
+  \item [\textbf{14675}] \textbf{Invoice processing \#8566 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 11-04 16:30 | Nominalny czas: 1.00h | Planowany start: 07-04 13:16 | Planowany koniec: 07-04 14:31 | Planowany czas: 1.25h
+  \item [\textbf{14637}] \textbf{Bug fixing \#5838 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 14-04 15:35 | Nominalny czas: 1.00h | Planowany start: 07-04 14:31 | Planowany koniec: 07-04 16:10 | Planowany czas: 1.65h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.61h, Termin: 10-04 08:00 -- 10-04 08:36
+  \item [\textbf{14662}] \textbf{Write proposal \#9016 (Operations) (Part 6)} | Prio: \texttt{medium} | Deadline: 20-04 15:50 | Nominalny czas: 1.50h | Planowany start: 10-04 08:36 | Planowany koniec: 10-04 09:43 | Planowany czas: 1.12h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.12h, Termin: 10-04 09:44 -- 10-04 09:51
+  \item [\textbf{14702}] \textbf{Write proposal \#7144 (Operations) (Part 3)} | Prio: \texttt{low} | Deadline: 03-04 16:35 | Nominalny czas: 1.50h | Planowany start: 10-04 09:51 | Planowany koniec: 10-04 11:21 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.73h, Termin: 10-04 11:21 -- 10-04 12:04
+  \item [\textbf{14653}] \textbf{Campaign review \#1456 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 21-04 08:30 | Nominalny czas: 0.50h | Planowany start: 10-04 12:04 | Planowany koniec: 10-04 13:11 | Planowany czas: 1.12h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.46h, Termin: 10-04 13:12 -- 10-04 13:39
+  \item [\textbf{14655}] \textbf{Update employee records \#8996 (HR) (Part 4)} | Prio: \texttt{medium} | Deadline: 19-04 16:10 | Nominalny czas: 3.00h | Planowany start: 10-04 13:40 | Planowany koniec: 10-04 18:55 | Planowany czas: 5.25h
+  \item [\textbf{14689}] \textbf{Bug fixing \#2117 (R\&D) (Part 5)} | Prio: \texttt{low} | Deadline: 04-04 16:05 | Nominalny czas: 1.00h | Planowany start: 11-04 08:00 | Planowany koniec: 11-04 09:00 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.09h, Termin: 11-04 09:00 -- 11-04 09:05
+  \item [\textbf{14673}] \textbf{Write proposal \#3842 (Marketing) (Part 2)} | Prio: \texttt{medium} | Deadline: 03-04 11:30 | Nominalny czas: 2.00h | Planowany start: 11-04 09:05 | Planowany koniec: 11-04 11:05 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.47h, Termin: 11-04 11:05 -- 11-04 11:33
+  \item [\textbf{14663}] \textbf{Write proposal \#3254 (Operations) (Part 7)} | Prio: \texttt{medium} | Deadline: 03-04 16:55 | Nominalny czas: 0.50h | Planowany start: 11-04 11:33 | Planowany koniec: 11-04 12:33 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.29h, Termin: 11-04 12:33 -- 11-04 12:50
+  \item [\textbf{14649}] \textbf{Team meeting \#8336 (R\&D)} | Prio: \texttt{medium} | Deadline: 20-04 10:10 | Nominalny czas: 2.00h | Planowany start: 11-04 12:50 | Planowany koniec: 11-04 15:20 | Planowany czas: 2.50h
+  \item [\textbf{14607}] \textbf{Campaign review \#2685 (Marketing) (Part 1)} | Prio: \texttt{urgent} | Deadline: 06-04 11:40 | Nominalny czas: 1.00h | Planowany start: 11-04 15:20 | Planowany koniec: 11-04 16:42 | Planowany czas: 1.38h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.79h, Termin: 12-04 08:00 -- 12-04 08:47
+  \item [\textbf{14621}] \textbf{Update employee records \#3097 (HR) (Part 3)} | Prio: \texttt{high} | Deadline: 20-04 15:45 | Nominalny czas: 1.50h | Planowany start: 12-04 08:47 | Planowany koniec: 12-04 09:32 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.11h, Termin: 12-04 09:32 -- 12-04 09:38
+  \item [\textbf{14676}] \textbf{Design dashboard \#4670 (Operations)} | Prio: \texttt{medium} | Deadline: 19-04 11:40 | Nominalny czas: 3.00h | Planowany start: 12-04 09:39 | Planowany koniec: 12-04 14:54 | Planowany czas: 5.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.66h, Termin: 12-04 14:54 -- 12-04 15:33
+  \item [\textbf{14636}] \textbf{Onboarding \#8898 (HR) (Part 4)} | Prio: \texttt{medium} | Deadline: 18-04 15:40 | Nominalny czas: 2.00h | Planowany start: 12-04 15:34 | Planowany koniec: 12-04 17:04 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.40h, Termin: 13-04 08:00 -- 13-04 08:23
+  \item [\textbf{14682}] \textbf{Team meeting (Q4 Review Report)} | Prio: \texttt{low} | Deadline: 27-03 09:55 | Nominalny czas: 3.00h | Planowany start: 13-04 08:23 | Planowany koniec: 13-04 09:53 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.22h, Termin: 13-04 09:53 -- 13-04 10:05
+  \item [\textbf{14620}] \textbf{API Integration \#6489 (IT)} | Prio: \texttt{high} | Deadline: 20-04 16:20 | Nominalny czas: 2.00h | Planowany start: 13-04 10:06 | Planowany koniec: 13-04 11:36 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.22h, Termin: 13-04 11:36 -- 13-04 11:49
+  \item [\textbf{14629}] \textbf{Write proposal (CRM Update)} | Prio: \texttt{high} | Deadline: 06-04 11:55 | Nominalny czas: 1.00h | Planowany start: 13-04 11:50 | Planowany koniec: 13-04 13:50 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.37h, Termin: 13-04 13:50 -- 13-04 14:12
+  \item [\textbf{14703}] \textbf{Code feature (App QA Cycle)} | Prio: \texttt{low} | Deadline: 05-04 12:20 | Nominalny czas: 0.17h | Planowany start: 13-04 14:12 | Planowany koniec: 13-04 14:17 | Planowany czas: 0.09h
+  \item [\textbf{14695}] \textbf{Write proposal (App QA Cycle)} | Prio: \texttt{low} | Deadline: 06-04 11:10 | Nominalny czas: 1.00h | Planowany start: 13-04 14:17 | Planowany koniec: 13-04 15:02 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.73h, Termin: 13-04 15:02 -- 13-04 15:45
+  \item [\textbf{14605}] \textbf{Code feature \#1600 (IT)} | Prio: \texttt{urgent} | Deadline: 27-03 16:50 | Nominalny czas: 3.00h | Planowany start: 13-04 15:45 | Planowany koniec: 13-04 18:45 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.19h, Termin: 14-04 08:00 -- 14-04 08:11
+  \item [\textbf{14613}] \textbf{Bug fixing \#1183 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 13-04 08:30 | Nominalny czas: 1.00h | Planowany start: 14-04 08:11 | Planowany koniec: 14-04 11:41 | Planowany czas: 3.50h
+  \item [\textbf{14612}] \textbf{Interview candidate \#9574 (HR) (Part 4)} | Prio: \texttt{high} | Deadline: 18-04 12:45 | Nominalny czas: 1.00h | Planowany start: 14-04 11:41 | Planowany koniec: 14-04 13:11 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 14-04 13:11 -- 14-04 13:35
+  \item [\textbf{14687}] \textbf{Write report \#5195 (Operations) (Part 4)} | Prio: \texttt{low} | Deadline: 19-04 14:10 | Nominalny czas: 2.50h | Planowany start: 14-04 13:36 | Planowany koniec: 14-04 14:51 | Planowany czas: 1.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.12h, Termin: 14-04 14:51 -- 14-04 14:58
+  \item [\textbf{14690}] \textbf{Monthly review \#6182 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 12-04 10:35 | Nominalny czas: 3.00h | Planowany start: 14-04 14:59 | Planowany koniec: 14-04 17:14 | Planowany czas: 2.25h
+  \item [\textbf{14628}] \textbf{Write proposal \#2011 (Marketing) (Part 5)} | Prio: \texttt{high} | Deadline: 17-04 16:30 | Nominalny czas: 2.00h | Planowany start: 17-04 08:00 | Planowany koniec: 17-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.15h, Termin: 17-04 09:30 -- 17-04 09:39
+  \item [\textbf{14688}] \textbf{Team meeting \#3158 (R\&D) (Part 4)} | Prio: \texttt{low} | Deadline: 27-03 12:45 | Nominalny czas: 2.50h | Planowany start: 17-04 09:39 | Planowany koniec: 17-04 12:09 | Planowany czas: 2.50h
+  \item [\textbf{14634}] \textbf{Write report \#8603 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 13-04 09:00 | Nominalny czas: 1.50h | Planowany start: 17-04 12:09 | Planowany koniec: 17-04 13:16 | Planowany czas: 1.12h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.56h, Termin: 17-04 13:16 -- 17-04 13:49
+  \item [\textbf{14604}] \textbf{Code feature \#4281 (IT) (Part 6)} | Prio: \texttt{urgent} | Deadline: 03-04 16:40 | Nominalny czas: 2.00h | Planowany start: 17-04 13:50 | Planowany koniec: 17-04 15:20 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.31h, Termin: 17-04 15:20 -- 17-04 15:38
+  \item [\textbf{14698}] \textbf{Social media update \#9105 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 04-04 10:55 | Nominalny czas: 3.00h | Planowany start: 17-04 15:38 | Planowany koniec: 17-04 17:53 | Planowany czas: 2.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.78h, Termin: 18-04 08:00 -- 18-04 08:46
+  \item [\textbf{14678}] \textbf{Invoice processing \#7189 (Finance) (Part 4)} | Prio: \texttt{low} | Deadline: 19-04 10:15 | Nominalny czas: 2.00h | Planowany start: 18-04 08:46 | Planowany koniec: 18-04 10:16 | Planowany czas: 1.50h
+  \item [\textbf{14661}] \textbf{Code feature \#9358 (Operations) (Part 5)} | Prio: \texttt{medium} | Deadline: 14-04 08:45 | Nominalny czas: 2.50h | Planowany start: 18-04 10:16 | Planowany koniec: 18-04 11:38 | Planowany czas: 1.38h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.46h, Termin: 18-04 11:39 -- 18-04 12:06
+  \item [\textbf{14609}] \textbf{Write report \#7278 (Finance) (Part 1)} | Prio: \texttt{high} | Deadline: 14-04 12:35 | Nominalny czas: 1.00h | Planowany start: 18-04 12:06 | Planowany koniec: 18-04 12:51 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.33h, Termin: 18-04 12:51 -- 18-04 13:10
+  \item [\textbf{14681}] \textbf{Code review \#6771 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 10-04 14:20 | Nominalny czas: 1.00h | Planowany start: 18-04 13:11 | Planowany koniec: 18-04 14:56 | Planowany czas: 1.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.12h, Termin: 18-04 14:56 -- 18-04 15:02
+  \item [\textbf{14674}] \textbf{Write report \#5908 (R\&D) (Part 2)} | Prio: \texttt{medium} | Deadline: 12-04 11:55 | Nominalny czas: 3.00h | Planowany start: 18-04 15:03 | Planowany koniec: 18-04 19:33 | Planowany czas: 4.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.56h, Termin: 19-04 08:00 -- 19-04 08:33
+  \item [\textbf{14627}] \textbf{Monthly review \#1765 (Finance) (Part 5)} | Prio: \texttt{high} | Deadline: 27-03 10:35 | Nominalny czas: 1.50h | Planowany start: 19-04 08:33 | Planowany koniec: 19-04 09:40 | Planowany czas: 1.12h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.50h, Termin: 19-04 09:40 -- 19-04 10:10
+  \item [\textbf{14652}] \textbf{Create ad copy \#1938 (Marketing) (Part 3)} | Prio: \texttt{medium} | Deadline: 05-04 11:20 | Nominalny czas: 2.00h | Planowany start: 19-04 10:11 | Planowany koniec: 19-04 13:11 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.46h, Termin: 19-04 13:11 -- 19-04 13:38
+  \item [\textbf{14611}] \textbf{Social media update \#2754 (Marketing) (Part 3)} | Prio: \texttt{high} | Deadline: 17-04 15:05 | Nominalny czas: 2.50h | Planowany start: 19-04 13:38 | Planowany koniec: 19-04 17:23 | Planowany czas: 3.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.80h, Termin: 20-04 08:00 -- 20-04 08:47
+  \item [\textbf{14667}] \textbf{Code feature \#6665 (Operations) (Part 8)} | Prio: \texttt{medium} | Deadline: 03-04 16:20 | Nominalny czas: 1.50h | Planowany start: 20-04 08:47 | Planowany koniec: 20-04 13:17 | Planowany czas: 4.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.37h, Termin: 20-04 13:17 -- 20-04 13:38
+  \item [\textbf{14666}] \textbf{Create ad copy \#5008 (Marketing)} | Prio: \texttt{medium} | Deadline: 05-04 11:15 | Nominalny czas: 2.00h | Planowany start: 20-04 13:39 | Planowany koniec: 20-04 16:09 | Planowany czas: 2.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.38h, Termin: 21-04 08:00 -- 21-04 08:22
+  \item [\textbf{14610}] \textbf{Team meeting \#1839 (HR) (Part 2)} | Prio: \texttt{high} | Deadline: 06-04 10:30 | Nominalny czas: 1.00h | Planowany start: 21-04 08:22 | Planowany koniec: 21-04 10:22 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.44h, Termin: 21-04 10:22 -- 21-04 10:48
+  \item [\textbf{14693}] \textbf{Budget audit \#5568 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 28-03 12:45 | Nominalny czas: 1.50h | Planowany start: 21-04 10:49 | Planowany koniec: 21-04 14:34 | Planowany czas: 3.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.64h, Termin: 21-04 14:34 -- 21-04 15:12
+  \item [\textbf{14598}] \textbf{Write report \#3518 (Operations) (Part 2)} | Prio: \texttt{urgent} | Deadline: 04-04 16:10 | Nominalny czas: 1.50h | Planowany start: 21-04 15:12 | Planowany koniec: 21-04 15:57 | Planowany czas: 0.75h
+  \item [\textbf{14677}] \textbf{Create ad copy \#8573 (Marketing) (Part 3)} | Prio: \texttt{medium} | Deadline: 18-04 11:10 | Nominalny czas: 2.50h | Planowany start: 21-04 15:57 | Planowany koniec: 21-04 19:23 | Planowany czas: 3.44h
+  \item [\textbf{14623}] \textbf{Deploy to staging \#2785 (IT) (Part 2)} | Prio: \texttt{high} | Deadline: 29-03 13:50 | Nominalny czas: 0.50h | Planowany start: 24-04 08:00 | Planowany koniec: 24-04 08:37 | Planowany czas: 0.62h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.26h, Termin: 24-04 08:37 -- 24-04 08:52
+  \item [\textbf{14648}] \textbf{Onboarding \#7202 (HR) (Part 2)} | Prio: \texttt{medium} | Deadline: 17-04 09:10 | Nominalny czas: 0.50h | Planowany start: 24-04 08:53 | Planowany koniec: 24-04 10:23 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.77h, Termin: 24-04 10:23 -- 24-04 11:08
+  \item [\textbf{14694}] \textbf{Budget audit \#8482 (Finance) (Part 4)} | Prio: \texttt{low} | Deadline: 10-04 11:05 | Nominalny czas: 1.00h | Planowany start: 24-04 11:09 | Planowany koniec: 24-04 12:24 | Planowany czas: 1.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.42h, Termin: 24-04 12:24 -- 24-04 12:49
+  \item [\textbf{14683}] \textbf{Code feature \#6648 (IT)} | Prio: \texttt{low} | Deadline: 07-04 09:55 | Nominalny czas: 3.00h | Planowany start: 24-04 12:49 | Planowany koniec: 24-04 17:19 | Planowany czas: 4.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.61h, Termin: 25-04 08:00 -- 25-04 08:36
+  \item [\textbf{14643}] \textbf{Code feature \#5851 (IT) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 15:15 | Nominalny czas: 1.50h | Planowany start: 25-04 08:36 | Planowany koniec: 25-04 10:28 | Planowany czas: 1.88h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.16h, Termin: 25-04 10:29 -- 25-04 10:38
+  \item [\textbf{14669}] \textbf{Write proposal \#6080 (R\&D) (Part 1)} | Prio: \texttt{medium} | Deadline: 17-04 11:00 | Nominalny czas: 1.50h | Planowany start: 25-04 10:39 | Planowany koniec: 25-04 11:46 | Planowany czas: 1.12h
+  \item [\textbf{14685}] \textbf{Write report \#9475 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 10-04 15:35 | Nominalny czas: 1.50h | Planowany start: 25-04 11:46 | Planowany koniec: 25-04 14:55 | Planowany czas: 3.15h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.10h, Termin: 25-04 14:55 -- 25-04 15:00
+  \item [\textbf{14664}] \textbf{Code feature \#4399 (Operations) (Part 3)} | Prio: \texttt{medium} | Deadline: 18-04 15:05 | Nominalny czas: 0.50h | Planowany start: 25-04 15:01 | Planowany koniec: 25-04 15:46 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.22h, Termin: 25-04 15:46 -- 25-04 15:59
+  \item [\textbf{14668}] \textbf{Write proposal \#2492 (Operations) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 14:05 | Nominalny czas: 2.50h | Planowany start: 25-04 15:59 | Planowany koniec: 25-04 22:14 | Planowany czas: 6.25h
+  \item [\textbf{14625}] \textbf{Campaign review \#4673 (Marketing) (Part 3)} | Prio: \texttt{high} | Deadline: 07-04 10:25 | Nominalny czas: 2.00h | Planowany start: 26-04 08:00 | Planowany koniec: 26-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.67h, Termin: 26-04 09:30 -- 26-04 10:10
+  \item [\textbf{14680}] \textbf{Bug fixing \#5230 (IT) (Part 2)} | Prio: \texttt{low} | Deadline: 19-04 08:30 | Nominalny czas: 1.00h | Planowany start: 26-04 10:10 | Planowany koniec: 26-04 11:25 | Planowany czas: 1.25h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.53h, Termin: 26-04 11:25 -- 26-04 11:56
+  \item [\textbf{14631}] \textbf{Bug fixing \#5754 (IT) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 15:55 | Nominalny czas: 1.50h | Planowany start: 26-04 11:57 | Planowany koniec: 26-04 12:42 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.10h, Termin: 26-04 12:42 -- 26-04 12:47
+  \item [\textbf{14650}] \textbf{Create ad copy \#7105 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 16:15 | Nominalny czas: 1.50h | Planowany start: 26-04 12:47 | Planowany koniec: 26-04 13:32 | Planowany czas: 0.75h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.24h, Termin: 26-04 13:32 -- 26-04 13:46
+  \item [\textbf{14691}] \textbf{Design dashboard \#4318 (R\&D) (Part 2)} | Prio: \texttt{low} | Deadline: 30-03 15:35 | Nominalny czas: 2.00h | Planowany start: 26-04 13:47 | Planowany koniec: 26-04 15:47 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.15h, Termin: 26-04 15:47 -- 26-04 15:55
+  \item [\textbf{14639}] \textbf{Write report \#4817 (Operations) (Part 3)} | Prio: \texttt{medium} | Deadline: 04-04 13:10 | Nominalny czas: 2.50h | Planowany start: 26-04 15:56 | Planowany koniec: 26-04 21:33 | Planowany czas: 5.62h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.29h, Termin: 27-04 08:00 -- 27-04 08:17
+  \item [\textbf{14630}] \textbf{Budget audit \#5289 (Finance) (Part 4)} | Prio: \texttt{medium} | Deadline: 10-04 08:50 | Nominalny czas: 1.50h | Planowany start: 27-04 08:17 | Planowany koniec: 27-04 11:39 | Planowany czas: 3.38h
+  \item [\textbf{14696}] \textbf{API Integration \#5924 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 17-04 15:15 | Nominalny czas: 2.00h | Planowany start: 27-04 11:39 | Planowany koniec: 27-04 13:27 | Planowany czas: 1.80h
+\end{enumerate}
+}
+
+\subsubsection*{2. Porównanie Harmonogramu: Plan Bazowy vs Przeplanowanie po Zakłóceniu}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Ewolucja harmonogramu dla algorytmu NSGA-III (Pracownik \#31)}
+\label{tab:case_study_nsgaiii_u31}
+\begin{tabular}{|r|c|c|l|}
+\hline
+\textbf{ID Zadania} & \textbf{Generacja 0 (Plan)} & \textbf{Generacja 1 (Po zakłóceniu)} & \textbf{Status / Zmiana} \\ \hline
+14697 & 27-03 08:34 -- 27-03 09:41 & \textbf{27-03 08:34 -- 27-03 09:42} & \textbf{Ukończone} \\ 
+14654 & 27-03 09:57 -- 27-03 12:57 & \textbf{27-03 09:58 -- 27-03 10:38} & \textbf{Ukończone} \\ 
+14658 & 27-03 13:19 -- 27-03 14:04 & \textbf{27-03 11:01 -- 27-03 11:42} & \textbf{Ukończone} \\ 
+14684 & 27-03 14:20 -- 27-03 15:35 & \textbf{27-03 11:59 -- 27-03 14:07} & \textbf{Ukończone} \\ 
+14686 & 27-03 15:35 -- 27-03 17:32 & \textbf{27-03 14:07 -- 27-03 18:26} & \textbf{Ukończone} \\ 
+14657 & 28-03 08:38 -- 28-03 09:08 & \textbf{28-03 08:38 -- 28-03 09:31} & \textbf{Ukończone} \\ 
+14618 & 28-03 09:29 -- 28-03 11:21 & \textbf{28-03 09:52 -- 28-03 12:16} & \textbf{Ukończone} \\ 
+14635 & 28-03 11:30 -- 28-03 13:00 & \textbf{28-03 12:25 -- 28-03 16:27} & \textbf{Ukończone} \\ 
+14603 & 28-03 13:12 -- 28-03 14:04 & \textbf{29-03 08:11 -- 29-03 08:42} & \textbf{Ukończone} \\ 
+14660 & 28-03 14:23 -- 28-03 21:08 & \textbf{29-03 09:02 -- 29-03 12:40} & \textbf{Ukończone} \\ 
+14651 & 29-03 08:00 -- 29-03 08:45 & \textbf{29-03 12:40 -- 29-03 15:31} & \textbf{Ukończone} \\ 
+14614 & 29-03 08:52 -- 29-03 09:37 & \textbf{29-03 15:39 -- 29-03 17:01} & \textbf{Ukończone} \\ 
+14633 & 29-03 09:56 -- 29-03 11:26 & \textbf{30-03 08:19 -- 30-03 12:25} & \textbf{Ukończone} \\ 
+14645 & 29-03 12:11 -- 29-03 12:56 & \textbf{30-03 13:10 -- 30-03 14:30} & \textbf{Ukończone} \\ 
+14646 & 29-03 12:56 -- 29-03 15:11 & \textbf{30-03 14:31 -- 30-03 17:35} & \textbf{Ukończone} \\ 
+14597 & 29-03 15:34 -- 29-03 18:34 & \textbf{31-03 08:22 -- 31-03 12:33} & \textbf{Ukończone} \\ 
+14616 & 30-03 08:23 -- 30-03 11:30 & \textbf{31-03 12:58 -- 31-03 18:52} & \textbf{Ukończone} \\ 
+14700 & 30-03 11:43 -- 30-03 13:13 & \textbf{03-04 08:12 -- 03-04 11:04} & \textbf{Ukończone} \\ 
+14622 & 30-03 13:56 -- 30-03 14:41 & 19-04 14:16 -- 19-04 20:16 & Przesunięcie (+480.3h) \\ 
+14641 & 30-03 14:41 -- 30-03 17:09 & 27-04 08:37 -- 27-04 12:22 & Przesunięcie (+665.9h) \\ 
+14692 & 31-03 08:00 -- 31-03 08:37 & 21-04 13:59 -- 21-04 14:20 & Przesunięcie (+510.0h) \\ 
+14640 & 31-03 09:00 -- 31-03 10:45 & 02-05 09:38 -- 02-05 11:23 & Przesunięcie (+768.6h) \\ 
+14632 & 31-03 11:11 -- 31-03 12:41 & 25-04 10:36 -- 25-04 12:28 & Przesunięcie (+599.4h) \\ 
+14601 & 31-03 12:57 -- 31-03 14:42 & 04-04 12:02 -- 04-04 13:02 & Przesunięcie (+95.1h) \\ 
+14659 & 31-03 14:54 -- 31-03 16:24 & 07-04 13:29 -- 07-04 18:44 & Przesunięcie (+166.6h) \\ 
+14647 & 03-04 08:00 -- 03-04 09:30 & 25-04 08:12 -- 25-04 10:27 & Przesunięcie (+528.2h) \\ 
+14665 & 03-04 09:38 -- 03-04 10:30 & 11-04 10:11 -- 11-04 11:18 & Przesunięcie (+192.6h) \\ 
+14626 & 03-04 10:43 -- 03-04 12:35 & 28-04 10:20 -- 28-04 20:20 & Przesunięcie (+599.6h) \\ 
+14624 & 03-04 12:35 -- 03-04 13:20 & 18-04 15:59 -- 18-04 16:29 & Przesunięcie (+363.4h) \\ 
+14679 & 03-04 13:56 -- 03-04 14:56 & 06-04 08:30 -- 06-04 10:30 & Przesunięcie (+66.6h) \\ 
+14599 & 03-04 15:40 -- 03-04 17:10 & 18-04 09:18 -- 18-04 11:18 & Przesunięcie (+353.6h) \\ 
+14701 & 04-04 08:10 -- 04-04 08:47 & 24-04 08:37 -- 24-04 09:52 & Przesunięcie (+480.4h) \\ 
+14608 & 04-04 09:32 -- 04-04 10:47 & 01-05 14:05 -- 01-05 18:05 & Przesunięcie (+652.5h) \\ 
+14642 & 04-04 10:47 -- 04-04 12:53 & 10-04 11:40 -- 10-04 13:10 & Przesunięcie (+144.9h) \\ 
+14602 & 04-04 12:53 -- 04-04 14:59 & 07-04 12:21 -- 07-04 13:21 & Przesunięcie (+71.5h) \\ 
+14615 & 04-04 15:16 -- 04-04 17:31 & 18-04 08:19 -- 18-04 09:04 & Przesunięcie (+329.1h) \\ 
+14699 & 05-04 08:00 -- 05-04 10:30 & 25-04 12:29 -- 25-04 14:06 & Przesunięcie (+484.5h) \\ 
+14606 & 05-04 11:07 -- 05-04 11:52 & 03-04 12:34 -- 03-04 13:40 & Przesunięcie (-46.5h) \\ 
+14617 & 05-04 12:21 -- 05-04 13:51 & 04-04 10:04 -- 04-04 12:02 & Przesunięcie (-26.3h) \\ 
+14600 & 05-04 14:03 -- 05-04 16:18 & 12-04 08:10 -- 12-04 11:55 & Przesunięcie (+162.1h) \\ 
+14670 & 06-04 08:00 -- 06-04 09:30 & 14-04 09:57 -- 14-04 12:12 & Przesunięcie (+193.9h) \\ 
+14644 & 06-04 09:47 -- 06-04 10:47 & 05-04 13:22 -- 05-04 13:37 & Przesunięcie (-20.4h) \\ 
+14656 & 06-04 10:54 -- 06-04 12:39 & 11-04 08:00 -- 11-04 08:52 & Przesunięcie (+117.1h) \\ 
+14671 & 06-04 13:19 -- 06-04 14:49 & 07-04 09:30 -- 07-04 09:52 & Przesunięcie (+20.2h) \\ 
+14672 & 06-04 15:08 -- 06-04 15:53 & 17-04 09:30 -- 17-04 10:48 & Przesunięcie (+258.4h) \\ 
+14638 & 07-04 08:00 -- 07-04 09:07 & 03-04 14:02 -- 03-04 14:47 & Przesunięcie (-90.0h) \\ 
+14619 & 07-04 09:07 -- 07-04 12:37 & 10-04 13:10 -- 10-04 13:40 & Przesunięcie (+76.0h) \\ 
+14675 & 07-04 13:16 -- 07-04 14:31 & 10-04 09:11 -- 10-04 11:11 & Przesunięcie (+67.9h) \\ 
+14637 & 07-04 14:31 -- 07-04 16:10 & 26-04 12:16 -- 26-04 12:46 & Przesunięcie (+453.8h) \\ 
+14662 & 10-04 08:36 -- 10-04 09:43 & 02-05 14:04 -- 02-05 15:11 & Przesunięcie (+533.5h) \\ 
+14702 & 10-04 09:51 -- 10-04 11:21 & 27-04 15:09 -- 27-04 18:31 & Przesunięcie (+413.3h) \\ 
+14653 & 10-04 12:04 -- 10-04 13:11 & 10-04 08:30 -- 10-04 09:00 & Przesunięcie (-3.6h) \\ 
+14655 & 10-04 13:40 -- 10-04 18:55 & 21-04 14:20 -- 21-04 18:27 & Przesunięcie (+264.7h) \\ 
+14689 & 11-04 08:00 -- 11-04 09:00 & 26-04 13:19 -- 26-04 14:49 & Przesunięcie (+365.3h) \\ 
+14673 & 11-04 09:05 -- 11-04 11:05 & 01-05 08:37 -- 01-05 12:07 & Przesunięcie (+479.5h) \\ 
+14663 & 11-04 11:33 -- 11-04 12:33 & 05-04 10:12 -- 05-04 11:42 & Przesunięcie (-145.3h) \\ 
+14649 & 11-04 12:50 -- 11-04 15:20 & 26-04 08:00 -- 26-04 10:30 & Przesunięcie (+355.2h) \\ 
+14607 & 11-04 15:20 -- 11-04 16:42 & 17-04 13:20 -- 17-04 14:20 & Przesunięcie (+142.0h) \\ 
+14621 & 12-04 08:47 -- 12-04 09:32 & 06-04 15:37 -- 06-04 17:29 & Przesunięcie (-137.2h) \\ 
+14676 & 12-04 09:39 -- 12-04 14:54 & 27-04 12:22 -- 27-04 13:52 & Przesunięcie (+362.7h) \\ 
+14636 & 12-04 15:34 -- 12-04 17:04 & 11-04 08:58 -- 11-04 09:58 & Przesunięcie (-30.6h) \\ 
+14682 & 13-04 08:23 -- 13-04 09:53 & 13-04 08:00 -- 13-04 12:30 & Przesunięcie (-0.4h) \\ 
+14620 & 13-04 10:06 -- 13-04 11:36 & 03-04 11:04 -- 03-04 12:34 & Przesunięcie (-239.0h) \\ 
+14629 & 13-04 11:50 -- 13-04 13:50 & 28-04 08:08 -- 28-04 09:38 & Przesunięcie (+356.3h) \\ 
+14703 & 13-04 14:12 -- 13-04 14:17 & 26-04 11:14 -- 26-04 11:39 & Przesunięcie (+309.0h) \\ 
+14695 & 13-04 14:17 -- 13-04 15:02 & 06-04 11:06 -- 06-04 14:06 & Przesunięcie (-171.2h) \\ 
+14605 & 13-04 15:45 -- 13-04 18:45 & 25-04 14:37 -- 25-04 21:22 & Przesunięcie (+286.9h) \\ 
+14613 & 14-04 08:11 -- 14-04 11:41 & 27-04 13:52 -- 27-04 14:22 & Przesunięcie (+317.7h) \\ 
+14612 & 14-04 11:41 -- 14-04 13:11 & 26-04 14:49 -- 26-04 16:04 & Przesunięcie (+291.1h) \\ 
+14687 & 14-04 13:36 -- 14-04 14:51 & 07-04 09:52 -- 07-04 11:44 & Przesunięcie (-171.7h) \\ 
+14690 & 14-04 14:59 -- 14-04 17:14 & 13-04 15:06 -- 13-04 18:51 & Przesunięcie (-23.9h) \\ 
+14628 & 17-04 08:00 -- 17-04 09:30 & 01-05 12:49 -- 01-05 13:49 & Przesunięcie (+340.8h) \\ 
+14688 & 17-04 09:39 -- 17-04 12:09 & 17-04 10:55 -- 17-04 12:47 & Przesunięcie (+1.3h) \\ 
+14634 & 17-04 12:09 -- 17-04 13:16 & 17-04 14:58 -- 17-04 18:43 & Przesunięcie (+2.8h) \\ 
+14604 & 17-04 13:50 -- 17-04 15:20 & 11-04 11:45 -- 11-04 14:15 & Przesunięcie (-146.1h) \\ 
+14698 & 17-04 15:38 -- 17-04 17:53 & 17-04 08:00 -- 17-04 09:30 & Przesunięcie (-7.6h) \\ 
+14678 & 18-04 08:46 -- 18-04 10:16 & 05-04 12:22 -- 05-04 13:22 & Przesunięcie (-308.4h) \\ 
+14661 & 18-04 10:16 -- 18-04 11:38 & 21-04 12:44 -- 21-04 13:59 & Przesunięcie (+74.5h) \\ 
+14609 & 18-04 12:06 -- 18-04 12:51 & 20-04 14:52 -- 20-04 20:04 & Przesunięcie (+50.8h) \\ 
+14681 & 18-04 13:11 -- 18-04 14:56 & 10-04 14:03 -- 10-04 15:48 & Przesunięcie (-191.1h) \\ 
+14674 & 18-04 15:03 -- 18-04 19:33 & 12-04 13:38 -- 12-04 21:08 & Przesunięcie (-145.4h) \\ 
+14627 & 19-04 08:33 -- 19-04 09:40 & 07-04 08:16 -- 07-04 09:01 & Przesunięcie (-288.3h) \\ 
+14652 & 19-04 10:11 -- 19-04 13:11 & 04-04 08:34 -- 04-04 10:04 & Przesunięcie (-361.6h) \\ 
+14611 & 19-04 13:38 -- 19-04 17:23 & 20-04 08:00 -- 20-04 11:45 & Przesunięcie (+18.4h) \\ 
+14667 & 20-04 08:47 -- 20-04 13:17 & 02-05 08:28 -- 02-05 09:13 & Przesunięcie (+287.7h) \\ 
+14666 & 20-04 13:39 -- 20-04 16:09 & 05-04 15:08 -- 05-04 18:59 & Przesunięcie (-358.5h) \\ 
+14610 & 21-04 08:22 -- 21-04 10:22 & 18-04 14:42 -- 18-04 15:12 & Przesunięcie (-65.7h) \\ 
+14693 & 21-04 10:49 -- 21-04 14:34 & 13-04 13:17 -- 13-04 14:51 & Przesunięcie (-189.5h) \\ 
+14598 & 21-04 15:12 -- 21-04 15:57 & 13-04 12:30 -- 13-04 13:17 & Przesunięcie (-194.7h) \\ 
+14677 & 21-04 15:57 -- 21-04 19:23 & 04-04 15:34 -- 05-04 00:19 & Przesunięcie (-408.4h) \\ 
+14623 & 24-04 08:00 -- 24-04 08:37 & 12-04 11:55 -- 12-04 13:29 & Przesunięcie (-284.1h) \\ 
+14648 & 24-04 08:53 -- 24-04 10:23 & 02-05 11:51 -- 02-05 13:51 & Przesunięcie (+195.0h) \\ 
+14694 & 24-04 11:09 -- 24-04 12:24 & 18-04 11:55 -- 18-04 12:55 & Przesunięcie (-143.2h) \\ 
+14683 & 24-04 12:49 -- 24-04 17:19 & 18-04 13:01 -- 18-04 14:31 & Przesunięcie (-143.8h) \\ 
+14643 & 25-04 08:36 -- 25-04 10:28 & 05-04 13:45 -- 05-04 14:30 & Przesunięcie (-474.9h) \\ 
+14669 & 25-04 10:39 -- 25-04 11:46 & 24-04 10:18 -- 24-04 13:40 & Przesunięcie (-24.4h) \\ 
+14685 & 25-04 11:46 -- 25-04 14:55 & 21-04 08:42 -- 21-04 12:04 & Przesunięcie (-99.1h) \\ 
+14664 & 25-04 15:01 -- 25-04 15:46 & 05-04 14:53 -- 05-04 15:08 & Przesunięcie (-480.1h) \\ 
+14668 & 25-04 15:59 -- 25-04 22:14 & 14-04 12:51 -- 14-04 15:21 & Przesunięcie (-267.1h) \\ 
+14625 & 26-04 08:00 -- 26-04 09:30 & 20-04 12:22 -- 20-04 14:52 & Przesunięcie (-139.6h) \\ 
+14680 & 26-04 10:10 -- 26-04 11:25 & 04-04 13:29 -- 04-04 14:59 & Przesunięcie (-524.7h) \\ 
+14631 & 26-04 11:57 -- 26-04 12:42 & 05-04 08:22 -- 05-04 09:52 & Przesunięcie (-507.6h) \\ 
+14650 & 26-04 12:47 -- 26-04 13:32 & 14-04 08:30 -- 14-04 09:15 & Przesunięcie (-292.3h) \\ 
+14691 & 26-04 13:47 -- 26-04 15:47 & 24-04 14:27 -- 24-04 18:57 & Przesunięcie (-47.3h) \\ 
+14639 & 26-04 15:56 -- 26-04 21:33 & 19-04 08:26 -- 19-04 14:03 & Przesunięcie (-175.5h) \\ 
+14630 & 27-04 08:17 -- 27-04 11:39 & 03-04 15:09 -- 03-04 18:31 & Przesunięcie (-569.1h) \\ 
+14696 & 27-04 11:39 -- 27-04 13:27 & 11-04 14:15 -- 11-04 18:45 & Przesunięcie (-381.4h) \\ 
+\hline
+\textbf{16395*} & - & 06-04 14:14 -- 06-04 15:29 & \textbf{Nowe (wstrzyknięte)} \\ 
+\hline
+\end{tabular}
+\\ {\footnotesize * -- Zadanie zakłócające (disruptor). Pogrubiony tekst: zadanie fizycznie wykonane.}
+\end{table}
+
+\vspace{0.8cm}
+\subsection{Algorytm: Baseline -- Planowanie Bazowe i Przeplanowanie}
+
+Wstrzyknięcie zadania zakłócającego (ID: 16395) nastąpiło w dniu: \textbf{03-04 08:45}.
+
+\subsubsection*{1. Specyfikacja Planu Bazowego (Generacja 0)}
+{\small
+\begin{enumerate}
+  \item [\textbf{14682}] \textbf{Team meeting (Q4 Review Report)} | Prio: \texttt{low} | Deadline: 27-03 09:55 | Nominalny czas: 3.00h | Planowany start: 27-03 08:00 | Planowany koniec: 27-03 11:00 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 27-03 11:00 -- 27-03 11:45
+  \item [\textbf{14627}] \textbf{Monthly review \#1765 (Finance) (Part 5)} | Prio: \texttt{high} | Deadline: 27-03 10:35 | Nominalny czas: 1.50h | Planowany start: 27-03 11:45 | Planowany koniec: 27-03 13:15 | Planowany czas: 1.50h
+  \item [\textbf{14688}] \textbf{Team meeting \#3158 (R\&D) (Part 4)} | Prio: \texttt{low} | Deadline: 27-03 12:45 | Nominalny czas: 2.50h | Planowany start: 27-03 13:15 | Planowany koniec: 27-03 15:45 | Planowany czas: 2.50h
+  \item [\textbf{14622}] \textbf{Invoice processing \#9219 (Finance) (Part 3)} | Prio: \texttt{high} | Deadline: 27-03 16:00 | Nominalny czas: 1.50h | Planowany start: 27-03 15:45 | Planowany koniec: 27-03 17:15 | Planowany czas: 1.50h
+  \item [\textbf{14647}] \textbf{Bug fixing (Q4 Review Report)} | Prio: \texttt{medium} | Deadline: 27-03 16:00 | Nominalny czas: 3.00h | Planowany start: 28-03 08:00 | Planowany koniec: 28-03 11:00 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 28-03 11:00 -- 28-03 11:45
+  \item [\textbf{14605}] \textbf{Code feature \#1600 (IT)} | Prio: \texttt{urgent} | Deadline: 27-03 16:50 | Nominalny czas: 3.00h | Planowany start: 28-03 11:45 | Planowany koniec: 28-03 14:45 | Planowany czas: 3.00h
+  \item [\textbf{14693}] \textbf{Budget audit \#5568 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 28-03 12:45 | Nominalny czas: 1.50h | Planowany start: 28-03 14:45 | Planowany koniec: 28-03 16:15 | Planowany czas: 1.50h
+  \item [\textbf{14679}] \textbf{Create ad copy \#9853 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 28-03 15:00 | Nominalny czas: 1.00h | Planowany start: 29-03 08:00 | Planowany koniec: 29-03 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14618}] \textbf{Monthly review \#2318 (Finance) (Part 2)} | Prio: \texttt{high} | Deadline: 28-03 15:35 | Nominalny czas: 2.50h | Planowany start: 29-03 09:00 | Planowany koniec: 29-03 11:30 | Planowany czas: 2.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 29-03 11:30 -- 29-03 12:15
+  \item [\textbf{14624}] \textbf{Team meeting \#8516 (HR) (Part 3)} | Prio: \texttt{high} | Deadline: 29-03 10:50 | Nominalny czas: 1.00h | Planowany start: 29-03 12:15 | Planowany koniec: 29-03 13:15 | Planowany czas: 1.00h
+  \item [\textbf{14623}] \textbf{Deploy to staging \#2785 (IT) (Part 2)} | Prio: \texttt{high} | Deadline: 29-03 13:50 | Nominalny czas: 0.50h | Planowany start: 29-03 13:15 | Planowany koniec: 29-03 13:45 | Planowany czas: 0.50h
+  \item [\textbf{14686}] \textbf{Deploy to staging \#1267 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 29-03 15:20 | Nominalny czas: 3.00h | Planowany start: 29-03 13:45 | Planowany koniec: 29-03 16:45 | Planowany czas: 3.00h
+  \item [\textbf{14619}] \textbf{Budget audit \#4294 (Finance) (Part 1)} | Prio: \texttt{high} | Deadline: 30-03 12:15 | Nominalny czas: 1.00h | Planowany start: 30-03 08:00 | Planowany koniec: 30-03 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14691}] \textbf{Design dashboard \#4318 (R\&D) (Part 2)} | Prio: \texttt{low} | Deadline: 30-03 15:35 | Nominalny czas: 2.00h | Planowany start: 30-03 09:00 | Planowany koniec: 30-03 11:00 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 30-03 11:00 -- 30-03 11:45
+  \item [\textbf{14659}] \textbf{Budget audit \#9644 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 30-03 16:50 | Nominalny czas: 3.00h | Planowany start: 30-03 11:45 | Planowany koniec: 30-03 14:45 | Planowany czas: 3.00h
+  \item [\textbf{14660}] \textbf{Write proposal \#4479 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 30-03 16:50 | Nominalny czas: 3.00h | Planowany start: 30-03 14:45 | Planowany koniec: 30-03 17:45 | Planowany czas: 3.00h
+  \item [\textbf{14641}] \textbf{Team meeting \#4325 (HR) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 10:35 | Nominalny czas: 3.00h | Planowany start: 31-03 08:00 | Planowany koniec: 31-03 11:00 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 31-03 11:00 -- 31-03 11:45
+  \item [\textbf{14640}] \textbf{Write report \#4677 (R\&D) (Part 5)} | Prio: \texttt{medium} | Deadline: 31-03 11:15 | Nominalny czas: 1.00h | Planowany start: 31-03 11:45 | Planowany koniec: 31-03 12:45 | Planowany czas: 1.00h
+  \item [\textbf{14615}] \textbf{Monthly review \#6632 (Finance) (Part 4)} | Prio: \texttt{high} | Deadline: 31-03 11:30 | Nominalny czas: 1.50h | Planowany start: 31-03 12:45 | Planowany koniec: 31-03 14:15 | Planowany czas: 1.50h
+  \item [\textbf{14665}] \textbf{Code review \#8421 (IT) (Part 3)} | Prio: \texttt{medium} | Deadline: 31-03 11:30 | Nominalny czas: 0.50h | Planowany start: 31-03 14:15 | Planowany koniec: 31-03 14:45 | Planowany czas: 0.50h
+  \item [\textbf{14656}] \textbf{Monthly review \#9438 (Finance) (Part 5)} | Prio: \texttt{medium} | Deadline: 31-03 13:15 | Nominalny czas: 0.50h | Planowany start: 31-03 14:45 | Planowany koniec: 31-03 15:15 | Planowany czas: 0.50h
+  \item [\textbf{14643}] \textbf{Code feature \#5851 (IT) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 15:15 | Nominalny czas: 1.50h | Planowany start: 31-03 15:15 | Planowany koniec: 31-03 16:45 | Planowany czas: 1.50h
+  \item [\textbf{14697}] \textbf{Deploy to staging \#1886 (IT) (Part 5)} | Prio: \texttt{low} | Deadline: 31-03 15:45 | Nominalny czas: 1.50h | Planowany start: 03-04 08:00 | Planowany koniec: 03-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14631}] \textbf{Bug fixing \#5754 (IT) (Part 2)} | Prio: \texttt{medium} | Deadline: 31-03 15:55 | Nominalny czas: 1.50h | Planowany start: 03-04 09:30 | Planowany koniec: 03-04 11:00 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 03-04 11:00 -- 03-04 11:45
+  \item [\textbf{14673}] \textbf{Write proposal \#3842 (Marketing) (Part 2)} | Prio: \texttt{medium} | Deadline: 03-04 11:30 | Nominalny czas: 2.00h | Planowany start: 03-04 11:45 | Planowany koniec: 03-04 13:45 | Planowany czas: 2.00h
+  \item [\textbf{14657}] \textbf{Write report \#7961 (Finance) (Part 5)} | Prio: \texttt{medium} | Deadline: 03-04 15:05 | Nominalny czas: 1.00h | Planowany start: 03-04 13:45 | Planowany koniec: 03-04 14:45 | Planowany czas: 1.00h
+  \item [\textbf{14635}] \textbf{Team meeting (Q4 Review Report)} | Prio: \texttt{medium} | Deadline: 03-04 15:30 | Nominalny czas: 3.00h | Planowany start: 03-04 14:45 | Planowany koniec: 03-04 17:45 | Planowany czas: 3.00h
+  \item [\textbf{14667}] \textbf{Code feature \#6665 (Operations) (Part 8)} | Prio: \texttt{medium} | Deadline: 03-04 16:20 | Nominalny czas: 1.50h | Planowany start: 04-04 08:00 | Planowany koniec: 04-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14702}] \textbf{Write proposal \#7144 (Operations) (Part 3)} | Prio: \texttt{low} | Deadline: 03-04 16:35 | Nominalny czas: 1.50h | Planowany start: 04-04 09:30 | Planowany koniec: 04-04 11:00 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 04-04 11:00 -- 04-04 11:45
+  \item [\textbf{14604}] \textbf{Code feature \#4281 (IT) (Part 6)} | Prio: \texttt{urgent} | Deadline: 03-04 16:40 | Nominalny czas: 2.00h | Planowany start: 04-04 11:45 | Planowany koniec: 04-04 13:45 | Planowany czas: 2.00h
+  \item [\textbf{14663}] \textbf{Write proposal \#3254 (Operations) (Part 7)} | Prio: \texttt{medium} | Deadline: 03-04 16:55 | Nominalny czas: 0.50h | Planowany start: 04-04 13:45 | Planowany koniec: 04-04 14:15 | Planowany czas: 0.50h
+  \item [\textbf{14698}] \textbf{Social media update \#9105 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 04-04 10:55 | Nominalny czas: 3.00h | Planowany start: 04-04 14:15 | Planowany koniec: 04-04 17:15 | Planowany czas: 3.00h
+  \item [\textbf{14639}] \textbf{Write report \#4817 (Operations) (Part 3)} | Prio: \texttt{medium} | Deadline: 04-04 13:10 | Nominalny czas: 2.50h | Planowany start: 05-04 08:00 | Planowany koniec: 05-04 10:30 | Planowany czas: 2.50h
+  \item [\textbf{14689}] \textbf{Bug fixing \#2117 (R\&D) (Part 5)} | Prio: \texttt{low} | Deadline: 04-04 16:05 | Nominalny czas: 1.00h | Planowany start: 05-04 10:30 | Planowany koniec: 05-04 11:30 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 05-04 11:30 -- 05-04 12:15
+  \item [\textbf{14598}] \textbf{Write report \#3518 (Operations) (Part 2)} | Prio: \texttt{urgent} | Deadline: 04-04 16:10 | Nominalny czas: 1.50h | Planowany start: 05-04 12:15 | Planowany koniec: 05-04 13:45 | Planowany czas: 1.50h
+  \item [\textbf{14632}] \textbf{Campaign review \#8750 (Marketing) (Part 4)} | Prio: \texttt{medium} | Deadline: 04-04 16:50 | Nominalny czas: 1.50h | Planowany start: 05-04 13:45 | Planowany koniec: 05-04 15:15 | Planowany czas: 1.50h
+  \item [\textbf{14666}] \textbf{Create ad copy \#5008 (Marketing)} | Prio: \texttt{medium} | Deadline: 05-04 11:15 | Nominalny czas: 2.00h | Planowany start: 05-04 15:15 | Planowany koniec: 05-04 17:15 | Planowany czas: 2.00h
+  \item [\textbf{14652}] \textbf{Create ad copy \#1938 (Marketing) (Part 3)} | Prio: \texttt{medium} | Deadline: 05-04 11:20 | Nominalny czas: 2.00h | Planowany start: 06-04 08:00 | Planowany koniec: 06-04 10:00 | Planowany czas: 2.00h
+  \item [\textbf{14597}] \textbf{Deploy to staging \#6909 (IT)} | Prio: \texttt{urgent} | Deadline: 05-04 11:35 | Nominalny czas: 3.00h | Planowany start: 06-04 10:00 | Planowany koniec: 06-04 13:00 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 06-04 13:00 -- 06-04 13:45
+  \item [\textbf{14701}] \textbf{Update employee records \#7115 (HR) (Part 4)} | Prio: \texttt{low} | Deadline: 05-04 11:45 | Nominalny czas: 0.50h | Planowany start: 06-04 13:45 | Planowany koniec: 06-04 14:15 | Planowany czas: 0.50h
+  \item [\textbf{14703}] \textbf{Code feature (App QA Cycle)} | Prio: \texttt{low} | Deadline: 05-04 12:20 | Nominalny czas: 0.17h | Planowany start: 06-04 14:15 | Planowany koniec: 06-04 14:25 | Planowany czas: 0.17h
+  \item [\textbf{14672}] \textbf{Write report \#3529 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 05-04 16:00 | Nominalny czas: 1.00h | Planowany start: 06-04 14:25 | Planowany koniec: 06-04 15:25 | Planowany czas: 1.00h
+  \item [\textbf{14603}] \textbf{Design dashboard \#2401 (R\&D) (Part 4)} | Prio: \texttt{urgent} | Deadline: 06-04 09:30 | Nominalny czas: 0.50h | Planowany start: 06-04 15:25 | Planowany koniec: 06-04 15:55 | Planowany czas: 0.50h
+  \item [\textbf{14610}] \textbf{Team meeting \#1839 (HR) (Part 2)} | Prio: \texttt{high} | Deadline: 06-04 10:30 | Nominalny czas: 1.00h | Planowany start: 06-04 15:55 | Planowany koniec: 06-04 16:55 | Planowany czas: 1.00h
+  \item [\textbf{14695}] \textbf{Write proposal (App QA Cycle)} | Prio: \texttt{low} | Deadline: 06-04 11:10 | Nominalny czas: 1.00h | Planowany start: 07-04 08:00 | Planowany koniec: 07-04 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14607}] \textbf{Campaign review \#2685 (Marketing) (Part 1)} | Prio: \texttt{urgent} | Deadline: 06-04 11:40 | Nominalny czas: 1.00h | Planowany start: 07-04 09:00 | Planowany koniec: 07-04 10:00 | Planowany czas: 1.00h
+  \item [\textbf{14629}] \textbf{Write proposal (CRM Update)} | Prio: \texttt{high} | Deadline: 06-04 11:55 | Nominalny czas: 1.00h | Planowany start: 07-04 10:00 | Planowany koniec: 07-04 11:00 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 07-04 11:00 -- 07-04 11:45
+  \item [\textbf{14658}] \textbf{Update employee records \#4369 (HR) (Part 6)} | Prio: \texttt{medium} | Deadline: 06-04 11:55 | Nominalny czas: 1.00h | Planowany start: 07-04 11:45 | Planowany koniec: 07-04 12:45 | Planowany czas: 1.00h
+  \item [\textbf{14645}] \textbf{Code feature \#3295 (Operations) (Part 5)} | Prio: \texttt{medium} | Deadline: 06-04 12:50 | Nominalny czas: 1.00h | Planowany start: 07-04 12:45 | Planowany koniec: 07-04 13:45 | Planowany czas: 1.00h
+  \item [\textbf{14684}] \textbf{Write proposal \#4636 (Marketing) (Part 3)} | Prio: \texttt{low} | Deadline: 06-04 15:45 | Nominalny czas: 2.50h | Planowany start: 07-04 13:45 | Planowany koniec: 07-04 16:15 | Planowany czas: 2.50h
+  \item [\textbf{14626}] \textbf{Code feature \#5655 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 06-04 16:50 | Nominalny czas: 2.50h | Planowany start: 10-04 08:00 | Planowany koniec: 10-04 10:30 | Planowany czas: 2.50h
+  \item [\textbf{14683}] \textbf{Code feature \#6648 (IT)} | Prio: \texttt{low} | Deadline: 07-04 09:55 | Nominalny czas: 3.00h | Planowany start: 10-04 10:30 | Planowany koniec: 10-04 13:30 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 10-04 13:30 -- 10-04 14:15
+  \item [\textbf{14625}] \textbf{Campaign review \#4673 (Marketing) (Part 3)} | Prio: \texttt{high} | Deadline: 07-04 10:25 | Nominalny czas: 2.00h | Planowany start: 10-04 14:15 | Planowany koniec: 10-04 16:15 | Planowany czas: 2.00h
+  \item [\textbf{14614}] \textbf{Write proposal \#8253 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 07-04 12:25 | Nominalny czas: 0.50h | Planowany start: 11-04 08:00 | Planowany koniec: 11-04 08:30 | Planowany czas: 0.50h
+  \item [\textbf{14633}] \textbf{Write report \#7368 (R\&D) (Part 1)} | Prio: \texttt{medium} | Deadline: 10-04 08:40 | Nominalny czas: 3.00h | Planowany start: 11-04 08:30 | Planowany koniec: 11-04 11:30 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 11-04 11:30 -- 11-04 12:15
+  \item [\textbf{14630}] \textbf{Budget audit \#5289 (Finance) (Part 4)} | Prio: \texttt{medium} | Deadline: 10-04 08:50 | Nominalny czas: 1.50h | Planowany start: 11-04 12:15 | Planowany koniec: 11-04 13:45 | Planowany czas: 1.50h
+  \item [\textbf{14694}] \textbf{Budget audit \#8482 (Finance) (Part 4)} | Prio: \texttt{low} | Deadline: 10-04 11:05 | Nominalny czas: 1.00h | Planowany start: 11-04 13:45 | Planowany koniec: 11-04 14:45 | Planowany czas: 1.00h
+  \item [\textbf{14681}] \textbf{Code review \#6771 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 10-04 14:20 | Nominalny czas: 1.00h | Planowany start: 11-04 14:45 | Planowany koniec: 11-04 15:45 | Planowany czas: 1.00h
+  \item [\textbf{14700}] \textbf{Social media update \#6117 (Marketing) (Part 2)} | Prio: \texttt{low} | Deadline: 10-04 15:30 | Nominalny czas: 2.00h | Planowany start: 11-04 15:45 | Planowany koniec: 11-04 17:45 | Planowany czas: 2.00h
+  \item [\textbf{14685}] \textbf{Write report \#9475 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 10-04 15:35 | Nominalny czas: 1.50h | Planowany start: 12-04 08:00 | Planowany koniec: 12-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14608}] \textbf{Code feature \#3295 (Operations) (Part 3)} | Prio: \texttt{high} | Deadline: 11-04 12:40 | Nominalny czas: 1.00h | Planowany start: 12-04 09:30 | Planowany koniec: 12-04 10:30 | Planowany czas: 1.00h
+  \item [\textbf{14668}] \textbf{Write proposal \#2492 (Operations) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 14:05 | Nominalny czas: 2.50h | Planowany start: 12-04 10:30 | Planowany koniec: 12-04 13:00 | Planowany czas: 2.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 12-04 13:00 -- 12-04 13:45
+  \item [\textbf{14699}] \textbf{Code review \#3678 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 11-04 15:00 | Nominalny czas: 2.50h | Planowany start: 12-04 13:45 | Planowany koniec: 12-04 16:15 | Planowany czas: 2.50h
+  \item [\textbf{14650}] \textbf{Create ad copy \#7105 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 16:15 | Nominalny czas: 1.50h | Planowany start: 13-04 08:00 | Planowany koniec: 13-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14671}] \textbf{Onboarding \#5231 (HR) (Part 1)} | Prio: \texttt{medium} | Deadline: 11-04 16:15 | Nominalny czas: 0.50h | Planowany start: 13-04 09:30 | Planowany koniec: 13-04 10:00 | Planowany czas: 0.50h
+  \item [\textbf{14675}] \textbf{Invoice processing \#8566 (Finance) (Part 3)} | Prio: \texttt{medium} | Deadline: 11-04 16:30 | Nominalny czas: 1.00h | Planowany start: 13-04 10:00 | Planowany koniec: 13-04 11:00 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 13-04 11:00 -- 13-04 11:45
+  \item [\textbf{14690}] \textbf{Monthly review \#6182 (Finance) (Part 2)} | Prio: \texttt{low} | Deadline: 12-04 10:35 | Nominalny czas: 3.00h | Planowany start: 13-04 11:45 | Planowany koniec: 13-04 14:45 | Planowany czas: 3.00h
+  \item [\textbf{14674}] \textbf{Write report \#5908 (R\&D) (Part 2)} | Prio: \texttt{medium} | Deadline: 12-04 11:55 | Nominalny czas: 3.00h | Planowany start: 13-04 14:45 | Planowany koniec: 13-04 17:45 | Planowany czas: 3.00h
+  \item [\textbf{14599}] \textbf{Campaign review \#2881 (Marketing) (Part 3)} | Prio: \texttt{urgent} | Deadline: 12-04 13:40 | Nominalny czas: 1.00h | Planowany start: 14-04 08:00 | Planowany koniec: 14-04 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14692}] \textbf{Deploy to staging \#1596 (IT) (Part 5)} | Prio: \texttt{low} | Deadline: 12-04 15:00 | Nominalny czas: 0.50h | Planowany start: 14-04 09:00 | Planowany koniec: 14-04 09:30 | Planowany czas: 0.50h
+  \item [\textbf{14600}] \textbf{Write proposal \#4793 (Operations) (Part 5)} | Prio: \texttt{urgent} | Deadline: 12-04 16:25 | Nominalny czas: 3.00h | Planowany start: 14-04 09:30 | Planowany koniec: 14-04 12:30 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 14-04 12:30 -- 14-04 13:15
+  \item [\textbf{14613}] \textbf{Bug fixing \#1183 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 13-04 08:30 | Nominalny czas: 1.00h | Planowany start: 14-04 13:15 | Planowany koniec: 14-04 14:15 | Planowany czas: 1.00h
+  \item [\textbf{14634}] \textbf{Write report \#8603 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 13-04 09:00 | Nominalny czas: 1.50h | Planowany start: 14-04 14:15 | Planowany koniec: 14-04 15:45 | Planowany czas: 1.50h
+  \item [\textbf{14601}] \textbf{Write report \#7222 (R\&D) (Part 1)} | Prio: \texttt{urgent} | Deadline: 13-04 11:05 | Nominalny czas: 1.00h | Planowany start: 14-04 15:45 | Planowany koniec: 14-04 16:45 | Planowany czas: 1.00h
+  \item [\textbf{14602}] \textbf{Create ad copy \#6415 (Marketing) (Part 4)} | Prio: \texttt{urgent} | Deadline: 13-04 12:25 | Nominalny czas: 1.00h | Planowany start: 17-04 08:00 | Planowany koniec: 17-04 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14638}] \textbf{Team meeting \#4914 (R\&D) (Part 8)} | Prio: \texttt{medium} | Deadline: 13-04 14:20 | Nominalny czas: 0.50h | Planowany start: 17-04 09:00 | Planowany koniec: 17-04 09:30 | Planowany czas: 0.50h
+  \item [\textbf{14661}] \textbf{Code feature \#9358 (Operations) (Part 5)} | Prio: \texttt{medium} | Deadline: 14-04 08:45 | Nominalny czas: 2.50h | Planowany start: 17-04 09:30 | Planowany koniec: 17-04 12:00 | Planowany czas: 2.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 17-04 12:00 -- 17-04 12:45
+  \item [\textbf{14609}] \textbf{Write report \#7278 (Finance) (Part 1)} | Prio: \texttt{high} | Deadline: 14-04 12:35 | Nominalny czas: 1.00h | Planowany start: 17-04 12:45 | Planowany koniec: 17-04 13:45 | Planowany czas: 1.00h
+  \item [\textbf{14637}] \textbf{Bug fixing \#5838 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 14-04 15:35 | Nominalny czas: 1.00h | Planowany start: 17-04 13:45 | Planowany koniec: 17-04 14:45 | Planowany czas: 1.00h
+  \item [\textbf{14642}] \textbf{Write report \#7492 (Finance) (Part 1)} | Prio: \texttt{medium} | Deadline: 14-04 15:40 | Nominalny czas: 3.00h | Planowany start: 17-04 14:45 | Planowany koniec: 17-04 17:45 | Planowany czas: 3.00h
+  \item [\textbf{14617}] \textbf{Team meeting \#2813 (Operations) (Part 2)} | Prio: \texttt{high} | Deadline: 14-04 15:55 | Nominalny czas: 1.50h | Planowany start: 18-04 08:00 | Planowany koniec: 18-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14646}] \textbf{Code feature \#5174 (R\&D) (Part 3)} | Prio: \texttt{medium} | Deadline: 14-04 16:30 | Nominalny czas: 1.50h | Planowany start: 18-04 09:30 | Planowany koniec: 18-04 11:00 | Planowany czas: 1.50h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 18-04 11:00 -- 18-04 11:45
+  \item [\textbf{14648}] \textbf{Onboarding \#7202 (HR) (Part 2)} | Prio: \texttt{medium} | Deadline: 17-04 09:10 | Nominalny czas: 0.50h | Planowany start: 18-04 11:45 | Planowany koniec: 18-04 12:15 | Planowany czas: 0.50h
+  \item [\textbf{14669}] \textbf{Write proposal \#6080 (R\&D) (Part 1)} | Prio: \texttt{medium} | Deadline: 17-04 11:00 | Nominalny czas: 1.50h | Planowany start: 18-04 12:15 | Planowany koniec: 18-04 13:45 | Planowany czas: 1.50h
+  \item [\textbf{14670}] \textbf{Update employee records \#2839 (HR) (Part 1)} | Prio: \texttt{medium} | Deadline: 17-04 11:45 | Nominalny czas: 3.00h | Planowany start: 18-04 13:45 | Planowany koniec: 18-04 16:45 | Planowany czas: 3.00h
+  \item [\textbf{14611}] \textbf{Social media update \#2754 (Marketing) (Part 3)} | Prio: \texttt{high} | Deadline: 17-04 15:05 | Nominalny czas: 2.50h | Planowany start: 19-04 08:00 | Planowany koniec: 19-04 10:30 | Planowany czas: 2.50h
+  \item [\textbf{14696}] \textbf{API Integration \#5924 (IT) (Part 4)} | Prio: \texttt{low} | Deadline: 17-04 15:15 | Nominalny czas: 2.00h | Planowany start: 19-04 10:30 | Planowany koniec: 19-04 12:30 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 19-04 12:30 -- 19-04 13:15
+  \item [\textbf{14628}] \textbf{Write proposal \#2011 (Marketing) (Part 5)} | Prio: \texttt{high} | Deadline: 17-04 16:30 | Nominalny czas: 2.00h | Planowany start: 19-04 13:15 | Planowany koniec: 19-04 15:15 | Planowany czas: 2.00h
+  \item [\textbf{14654}] \textbf{Write proposal \#3255 (Operations) (Part 6)} | Prio: \texttt{medium} | Deadline: 17-04 16:50 | Nominalny czas: 1.00h | Planowany start: 19-04 15:15 | Planowany koniec: 19-04 16:15 | Planowany czas: 1.00h
+  \item [\textbf{14677}] \textbf{Create ad copy \#8573 (Marketing) (Part 3)} | Prio: \texttt{medium} | Deadline: 18-04 11:10 | Nominalny czas: 2.50h | Planowany start: 20-04 08:00 | Planowany koniec: 20-04 10:30 | Planowany czas: 2.50h
+  \item [\textbf{14612}] \textbf{Interview candidate \#9574 (HR) (Part 4)} | Prio: \texttt{high} | Deadline: 18-04 12:45 | Nominalny czas: 1.00h | Planowany start: 20-04 10:30 | Planowany koniec: 20-04 11:30 | Planowany czas: 1.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 20-04 11:30 -- 20-04 12:15
+  \item [\textbf{14616}] \textbf{Budget audit \#7909 (Finance) (Part 3)} | Prio: \texttt{high} | Deadline: 18-04 14:55 | Nominalny czas: 2.50h | Planowany start: 20-04 12:15 | Planowany koniec: 20-04 14:45 | Planowany czas: 2.50h
+  \item [\textbf{14664}] \textbf{Code feature \#4399 (Operations) (Part 3)} | Prio: \texttt{medium} | Deadline: 18-04 15:05 | Nominalny czas: 0.50h | Planowany start: 20-04 14:45 | Planowany koniec: 20-04 15:15 | Planowany czas: 0.50h
+  \item [\textbf{14636}] \textbf{Onboarding \#8898 (HR) (Part 4)} | Prio: \texttt{medium} | Deadline: 18-04 15:40 | Nominalny czas: 2.00h | Planowany start: 20-04 15:15 | Planowany koniec: 20-04 17:15 | Planowany czas: 2.00h
+  \item [\textbf{14680}] \textbf{Bug fixing \#5230 (IT) (Part 2)} | Prio: \texttt{low} | Deadline: 19-04 08:30 | Nominalny czas: 1.00h | Planowany start: 21-04 08:00 | Planowany koniec: 21-04 09:00 | Planowany czas: 1.00h
+  \item [\textbf{14678}] \textbf{Invoice processing \#7189 (Finance) (Part 4)} | Prio: \texttt{low} | Deadline: 19-04 10:15 | Nominalny czas: 2.00h | Planowany start: 21-04 09:00 | Planowany koniec: 21-04 11:00 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 21-04 11:00 -- 21-04 11:45
+  \item [\textbf{14676}] \textbf{Design dashboard \#4670 (Operations)} | Prio: \texttt{medium} | Deadline: 19-04 11:40 | Nominalny czas: 3.00h | Planowany start: 21-04 11:45 | Planowany koniec: 21-04 14:45 | Planowany czas: 3.00h
+  \item [\textbf{14687}] \textbf{Write report \#5195 (Operations) (Part 4)} | Prio: \texttt{low} | Deadline: 19-04 14:10 | Nominalny czas: 2.50h | Planowany start: 21-04 14:45 | Planowany koniec: 21-04 17:15 | Planowany czas: 2.50h
+  \item [\textbf{14655}] \textbf{Update employee records \#8996 (HR) (Part 4)} | Prio: \texttt{medium} | Deadline: 19-04 16:10 | Nominalny czas: 3.00h | Planowany start: 24-04 08:00 | Planowany koniec: 24-04 11:00 | Planowany czas: 3.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 24-04 11:00 -- 24-04 11:45
+  \item [\textbf{14649}] \textbf{Team meeting \#8336 (R\&D)} | Prio: \texttt{medium} | Deadline: 20-04 10:10 | Nominalny czas: 2.00h | Planowany start: 24-04 11:45 | Planowany koniec: 24-04 13:45 | Planowany czas: 2.00h
+  \item [\textbf{14621}] \textbf{Update employee records \#3097 (HR) (Part 3)} | Prio: \texttt{high} | Deadline: 20-04 15:45 | Nominalny czas: 1.50h | Planowany start: 24-04 13:45 | Planowany koniec: 24-04 15:15 | Planowany czas: 1.50h
+  \item [\textbf{14662}] \textbf{Write proposal \#9016 (Operations) (Part 6)} | Prio: \texttt{medium} | Deadline: 20-04 15:50 | Nominalny czas: 1.50h | Planowany start: 24-04 15:15 | Planowany koniec: 24-04 16:45 | Planowany czas: 1.50h
+  \item [\textbf{14651}] \textbf{Write report \#4883 (Operations) (Part 4)} | Prio: \texttt{medium} | Deadline: 20-04 16:00 | Nominalny czas: 1.50h | Planowany start: 25-04 08:00 | Planowany koniec: 25-04 09:30 | Planowany czas: 1.50h
+  \item [\textbf{14620}] \textbf{API Integration \#6489 (IT)} | Prio: \texttt{high} | Deadline: 20-04 16:20 | Nominalny czas: 2.00h | Planowany start: 25-04 09:30 | Planowany koniec: 25-04 11:30 | Planowany czas: 2.00h
+  \item [\textbf{PRZERWA}] Czas trwania: 0.75h, Termin: 25-04 11:30 -- 25-04 12:15
+  \item [\textbf{14653}] \textbf{Campaign review \#1456 (Marketing) (Part 1)} | Prio: \texttt{medium} | Deadline: 21-04 08:30 | Nominalny czas: 0.50h | Planowany start: 25-04 12:15 | Planowany koniec: 25-04 12:45 | Planowany czas: 0.50h
+  \item [\textbf{14644}] \textbf{Budget audit \#7879 (Finance) (Part 2)} | Prio: \texttt{medium} | Deadline: 21-04 09:35 | Nominalny czas: 0.50h | Planowany start: 25-04 12:45 | Planowany koniec: 25-04 13:15 | Planowany czas: 0.50h
+  \item [\textbf{14606}] \textbf{Design dashboard \#9146 (Operations) (Part 4)} | Prio: \texttt{urgent} | Deadline: 21-04 16:25 | Nominalny czas: 1.00h | Planowany start: 25-04 13:15 | Planowany koniec: 25-04 14:15 | Planowany czas: 1.00h
+\end{enumerate}
+}
+
+\subsubsection*{2. Porównanie Harmonogramu: Plan Bazowy vs Przeplanowanie po Zakłóceniu}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Ewolucja harmonogramu dla algorytmu Baseline (Pracownik \#31)}
+\label{tab:case_study_baseline_u31}
+\begin{tabular}{|r|c|c|l|}
+\hline
+\textbf{ID Zadania} & \textbf{Generacja 0 (Plan)} & \textbf{Generacja 1 (Po zakłóceniu)} & \textbf{Status / Zmiana} \\ \hline
+14682 & 27-03 08:00 -- 27-03 11:00 & \textbf{27-03 08:00 -- 27-03 10:09} & \textbf{Ukończone} \\ 
+14627 & 27-03 11:45 -- 27-03 13:15 & \textbf{27-03 10:54 -- 27-03 12:02} & \textbf{Ukończone} \\ 
+14688 & 27-03 13:15 -- 27-03 15:45 & \textbf{27-03 12:02 -- 27-03 14:11} & \textbf{Ukończone} \\ 
+14622 & 27-03 15:45 -- 27-03 17:15 & \textbf{27-03 14:12 -- 27-03 16:12} & \textbf{Ukończone} \\ 
+14647 & 28-03 08:00 -- 28-03 11:00 & \textbf{28-03 08:00 -- 28-03 11:11} & \textbf{Ukończone} \\ 
+14605 & 28-03 11:45 -- 28-03 14:45 & \textbf{28-03 11:56 -- 28-03 16:07} & \textbf{Ukończone} \\ 
+14693 & 28-03 14:45 -- 28-03 16:15 & \textbf{29-03 08:00 -- 29-03 09:48} & \textbf{Ukończone} \\ 
+14679 & 29-03 08:00 -- 29-03 09:00 & \textbf{29-03 09:48 -- 29-03 11:14} & \textbf{Ukończone} \\ 
+14618 & 29-03 09:00 -- 29-03 11:30 & \textbf{29-03 11:14 -- 29-03 18:04} & \textbf{Ukończone} \\ 
+14624 & 29-03 12:15 -- 29-03 13:15 & \textbf{30-03 08:45 -- 30-03 09:53} & \textbf{Ukończone} \\ 
+14623 & 29-03 13:15 -- 29-03 13:45 & \textbf{30-03 09:53 -- 30-03 10:44} & \textbf{Ukończone} \\ 
+14686 & 29-03 13:45 -- 29-03 16:45 & \textbf{30-03 10:44 -- 30-03 18:28} & \textbf{Ukończone} \\ 
+14619 & 30-03 08:00 -- 30-03 09:00 & \textbf{31-03 08:00 -- 31-03 09:57} & \textbf{Ukończone} \\ 
+14691 & 30-03 09:00 -- 30-03 11:00 & \textbf{31-03 09:57 -- 31-03 16:19} & \textbf{Ukończone} \\ 
+14659 & 30-03 11:45 -- 30-03 14:45 & 03-04 08:45 -- 03-04 11:45 & Przesunięcie (+93.0h) \\ 
+14660 & 30-03 14:45 -- 30-03 17:45 & 03-04 12:30 -- 03-04 15:30 & Przesunięcie (+93.8h) \\ 
+14641 & 31-03 08:00 -- 31-03 11:00 & 03-04 15:30 -- 03-04 18:30 & Przesunięcie (+79.5h) \\ 
+14640 & 31-03 11:45 -- 31-03 12:45 & 04-04 08:00 -- 04-04 09:00 & Przesunięcie (+92.2h) \\ 
+14615 & 31-03 12:45 -- 31-03 14:15 & 04-04 09:00 -- 04-04 10:30 & Przesunięcie (+92.2h) \\ 
+14665 & 31-03 14:15 -- 31-03 14:45 & 04-04 10:30 -- 04-04 11:00 & Przesunięcie (+92.2h) \\ 
+14656 & 31-03 14:45 -- 31-03 15:15 & 04-04 11:45 -- 04-04 12:15 & Przesunięcie (+93.0h) \\ 
+14643 & 31-03 15:15 -- 31-03 16:45 & 04-04 12:15 -- 04-04 13:45 & Przesunięcie (+93.0h) \\ 
+14697 & 03-04 08:00 -- 03-04 09:30 & 04-04 13:45 -- 04-04 15:15 & Przesunięcie (+29.8h) \\ 
+14631 & 03-04 09:30 -- 03-04 11:00 & 04-04 15:15 -- 04-04 16:45 & Przesunięcie (+29.8h) \\ 
+14673 & 03-04 11:45 -- 03-04 13:45 & 05-04 09:00 -- 05-04 11:00 & Przesunięcie (+45.2h) \\ 
+14657 & 03-04 13:45 -- 03-04 14:45 & 05-04 11:45 -- 05-04 12:45 & Przesunięcie (+46.0h) \\ 
+14635 & 03-04 14:45 -- 03-04 17:45 & 05-04 12:45 -- 05-04 15:45 & Przesunięcie (+46.0h) \\ 
+14667 & 04-04 08:00 -- 04-04 09:30 & 05-04 15:45 -- 05-04 17:15 & Przesunięcie (+31.8h) \\ 
+14702 & 04-04 09:30 -- 04-04 11:00 & 06-04 08:00 -- 06-04 09:30 & Przesunięcie (+46.5h) \\ 
+14604 & 04-04 11:45 -- 04-04 13:45 & 06-04 09:30 -- 06-04 11:30 & Przesunięcie (+45.8h) \\ 
+14663 & 04-04 13:45 -- 04-04 14:15 & 06-04 12:15 -- 06-04 12:45 & Przesunięcie (+46.5h) \\ 
+14698 & 04-04 14:15 -- 04-04 17:15 & 06-04 12:45 -- 06-04 15:45 & Przesunięcie (+46.5h) \\ 
+14639 & 05-04 08:00 -- 05-04 10:30 & 06-04 15:45 -- 06-04 18:15 & Przesunięcie (+31.8h) \\ 
+14689 & 05-04 10:30 -- 05-04 11:30 & 07-04 08:00 -- 07-04 09:00 & Przesunięcie (+45.5h) \\ 
+14598 & 05-04 12:15 -- 05-04 13:45 & 07-04 09:00 -- 07-04 10:30 & Przesunięcie (+44.8h) \\ 
+14632 & 05-04 13:45 -- 05-04 15:15 & 07-04 10:30 -- 07-04 12:00 & Przesunięcie (+44.8h) \\ 
+14666 & 05-04 15:15 -- 05-04 17:15 & 07-04 12:45 -- 07-04 14:45 & Przesunięcie (+45.5h) \\ 
+14652 & 06-04 08:00 -- 06-04 10:00 & 07-04 14:45 -- 07-04 16:45 & Przesunięcie (+30.8h) \\ 
+14597 & 06-04 10:00 -- 06-04 13:00 & 10-04 08:00 -- 10-04 11:00 & Przesunięcie (+94.0h) \\ 
+14701 & 06-04 13:45 -- 06-04 14:15 & 10-04 11:45 -- 10-04 12:15 & Przesunięcie (+94.0h) \\ 
+14703 & 06-04 14:15 -- 06-04 14:25 & 10-04 12:15 -- 10-04 12:25 & Przesunięcie (+94.0h) \\ 
+14672 & 06-04 14:25 -- 06-04 15:25 & 10-04 12:25 -- 10-04 13:25 & Przesunięcie (+94.0h) \\ 
+14603 & 06-04 15:25 -- 06-04 15:55 & 10-04 13:25 -- 10-04 13:55 & Przesunięcie (+94.0h) \\ 
+14610 & 06-04 15:55 -- 06-04 16:55 & 10-04 13:55 -- 10-04 14:55 & Przesunięcie (+94.0h) \\ 
+14695 & 07-04 08:00 -- 07-04 09:00 & 10-04 14:55 -- 10-04 15:55 & Przesunięcie (+78.9h) \\ 
+14607 & 07-04 09:00 -- 07-04 10:00 & 10-04 15:55 -- 10-04 16:55 & Przesunięcie (+78.9h) \\ 
+14629 & 07-04 10:00 -- 07-04 11:00 & 11-04 08:00 -- 11-04 09:00 & Przesunięcie (+94.0h) \\ 
+14658 & 07-04 11:45 -- 07-04 12:45 & 11-04 09:00 -- 11-04 10:00 & Przesunięcie (+93.2h) \\ 
+14645 & 07-04 12:45 -- 07-04 13:45 & 11-04 10:00 -- 11-04 11:00 & Przesunięcie (+93.2h) \\ 
+14684 & 07-04 13:45 -- 07-04 16:15 & 11-04 11:45 -- 11-04 14:15 & Przesunięcie (+94.0h) \\ 
+14626 & 10-04 08:00 -- 10-04 10:30 & 11-04 14:15 -- 11-04 16:45 & Przesunięcie (+30.2h) \\ 
+14683 & 10-04 10:30 -- 10-04 13:30 & 12-04 08:00 -- 12-04 11:00 & Przesunięcie (+45.5h) \\ 
+14625 & 10-04 14:15 -- 10-04 16:15 & 12-04 11:45 -- 12-04 13:45 & Przesunięcie (+45.5h) \\ 
+14614 & 11-04 08:00 -- 11-04 08:30 & 12-04 13:45 -- 12-04 14:15 & Przesunięcie (+29.8h) \\ 
+14633 & 11-04 08:30 -- 11-04 11:30 & 12-04 14:15 -- 12-04 17:15 & Przesunięcie (+29.8h) \\ 
+14630 & 11-04 12:15 -- 11-04 13:45 & 13-04 08:00 -- 13-04 09:30 & Przesunięcie (+43.8h) \\ 
+14694 & 11-04 13:45 -- 11-04 14:45 & 13-04 09:30 -- 13-04 10:30 & Przesunięcie (+43.8h) \\ 
+14681 & 11-04 14:45 -- 11-04 15:45 & 13-04 10:30 -- 13-04 11:30 & Przesunięcie (+43.8h) \\ 
+14700 & 11-04 15:45 -- 11-04 17:45 & 13-04 12:15 -- 13-04 14:15 & Przesunięcie (+44.5h) \\ 
+14685 & 12-04 08:00 -- 12-04 09:30 & 13-04 14:15 -- 13-04 15:45 & Przesunięcie (+30.2h) \\ 
+14608 & 12-04 09:30 -- 12-04 10:30 & 13-04 15:45 -- 13-04 16:45 & Przesunięcie (+30.2h) \\ 
+14668 & 12-04 10:30 -- 12-04 13:00 & 14-04 08:00 -- 14-04 10:30 & Przesunięcie (+45.5h) \\ 
+14699 & 12-04 13:45 -- 12-04 16:15 & 14-04 10:30 -- 14-04 13:00 & Przesunięcie (+44.8h) \\ 
+14650 & 13-04 08:00 -- 13-04 09:30 & 14-04 13:45 -- 14-04 15:15 & Przesunięcie (+29.8h) \\ 
+14671 & 13-04 09:30 -- 13-04 10:00 & 14-04 15:15 -- 14-04 15:45 & Przesunięcie (+29.8h) \\ 
+14675 & 13-04 10:00 -- 13-04 11:00 & 14-04 15:45 -- 14-04 16:45 & Przesunięcie (+29.8h) \\ 
+14690 & 13-04 11:45 -- 13-04 14:45 & 17-04 08:00 -- 17-04 11:00 & Przesunięcie (+92.2h) \\ 
+14674 & 13-04 14:45 -- 13-04 17:45 & 17-04 11:45 -- 17-04 14:45 & Przesunięcie (+93.0h) \\ 
+14599 & 14-04 08:00 -- 14-04 09:00 & 17-04 14:45 -- 17-04 15:45 & Przesunięcie (+78.8h) \\ 
+14692 & 14-04 09:00 -- 14-04 09:30 & 17-04 15:45 -- 17-04 16:15 & Przesunięcie (+78.8h) \\ 
+14600 & 14-04 09:30 -- 14-04 12:30 & 18-04 08:00 -- 18-04 11:00 & Przesunięcie (+94.5h) \\ 
+14613 & 14-04 13:15 -- 14-04 14:15 & 18-04 11:45 -- 18-04 12:45 & Przesunięcie (+94.5h) \\ 
+14634 & 14-04 14:15 -- 14-04 15:45 & 18-04 12:45 -- 18-04 14:15 & Przesunięcie (+94.5h) \\ 
+14601 & 14-04 15:45 -- 14-04 16:45 & 18-04 14:15 -- 18-04 15:15 & Przesunięcie (+94.5h) \\ 
+14602 & 17-04 08:00 -- 17-04 09:00 & 18-04 15:15 -- 18-04 16:15 & Przesunięcie (+31.2h) \\ 
+14638 & 17-04 09:00 -- 17-04 09:30 & 19-04 08:00 -- 19-04 08:30 & Przesunięcie (+47.0h) \\ 
+14661 & 17-04 09:30 -- 17-04 12:00 & 19-04 08:30 -- 19-04 11:00 & Przesunięcie (+47.0h) \\ 
+14609 & 17-04 12:45 -- 17-04 13:45 & 19-04 11:45 -- 19-04 12:45 & Przesunięcie (+47.0h) \\ 
+14637 & 17-04 13:45 -- 17-04 14:45 & 19-04 12:45 -- 19-04 13:45 & Przesunięcie (+47.0h) \\ 
+14642 & 17-04 14:45 -- 17-04 17:45 & 19-04 13:45 -- 19-04 16:45 & Przesunięcie (+47.0h) \\ 
+14617 & 18-04 08:00 -- 18-04 09:30 & 20-04 08:00 -- 20-04 09:30 & Przesunięcie (+48.0h) \\ 
+14646 & 18-04 09:30 -- 18-04 11:00 & 20-04 09:30 -- 20-04 11:00 & Przesunięcie (+48.0h) \\ 
+14648 & 18-04 11:45 -- 18-04 12:15 & 20-04 11:45 -- 20-04 12:15 & Przesunięcie (+48.0h) \\ 
+14669 & 18-04 12:15 -- 18-04 13:45 & 20-04 12:15 -- 20-04 13:45 & Przesunięcie (+48.0h) \\ 
+14670 & 18-04 13:45 -- 18-04 16:45 & 20-04 13:45 -- 20-04 16:45 & Przesunięcie (+48.0h) \\ 
+14611 & 19-04 08:00 -- 19-04 10:30 & 21-04 08:00 -- 21-04 10:30 & Przesunięcie (+48.0h) \\ 
+14696 & 19-04 10:30 -- 19-04 12:30 & 21-04 10:30 -- 21-04 12:30 & Przesunięcie (+48.0h) \\ 
+14628 & 19-04 13:15 -- 19-04 15:15 & 21-04 13:15 -- 21-04 15:15 & Przesunięcie (+48.0h) \\ 
+14654 & 19-04 15:15 -- 19-04 16:15 & 21-04 15:15 -- 21-04 16:15 & Przesunięcie (+48.0h) \\ 
+14677 & 20-04 08:00 -- 20-04 10:30 & 24-04 08:00 -- 24-04 10:30 & Przesunięcie (+96.0h) \\ 
+14612 & 20-04 10:30 -- 20-04 11:30 & 24-04 10:30 -- 24-04 11:30 & Przesunięcie (+96.0h) \\ 
+14616 & 20-04 12:15 -- 20-04 14:45 & 24-04 12:15 -- 24-04 14:45 & Przesunięcie (+96.0h) \\ 
+14664 & 20-04 14:45 -- 20-04 15:15 & 24-04 14:45 -- 24-04 15:15 & Przesunięcie (+96.0h) \\ 
+14636 & 20-04 15:15 -- 20-04 17:15 & 24-04 15:15 -- 24-04 17:15 & Przesunięcie (+96.0h) \\ 
+14680 & 21-04 08:00 -- 21-04 09:00 & 25-04 08:00 -- 25-04 09:00 & Przesunięcie (+96.0h) \\ 
+14678 & 21-04 09:00 -- 21-04 11:00 & 25-04 09:00 -- 25-04 11:00 & Przesunięcie (+96.0h) \\ 
+14676 & 21-04 11:45 -- 21-04 14:45 & 25-04 11:45 -- 25-04 14:45 & Przesunięcie (+96.0h) \\ 
+14687 & 21-04 14:45 -- 21-04 17:15 & 25-04 14:45 -- 25-04 17:15 & Przesunięcie (+96.0h) \\ 
+14655 & 24-04 08:00 -- 24-04 11:00 & 26-04 08:00 -- 26-04 11:00 & Przesunięcie (+48.0h) \\ 
+14649 & 24-04 11:45 -- 24-04 13:45 & 26-04 11:45 -- 26-04 13:45 & Przesunięcie (+48.0h) \\ 
+14621 & 24-04 13:45 -- 24-04 15:15 & 26-04 13:45 -- 26-04 15:15 & Przesunięcie (+48.0h) \\ 
+14662 & 24-04 15:15 -- 24-04 16:45 & 26-04 15:15 -- 26-04 16:45 & Przesunięcie (+48.0h) \\ 
+14651 & 25-04 08:00 -- 25-04 09:30 & 27-04 08:00 -- 27-04 09:30 & Przesunięcie (+48.0h) \\ 
+14620 & 25-04 09:30 -- 25-04 11:30 & 27-04 09:30 -- 27-04 11:30 & Przesunięcie (+48.0h) \\ 
+14653 & 25-04 12:15 -- 25-04 12:45 & 27-04 12:15 -- 27-04 12:45 & Przesunięcie (+48.0h) \\ 
+14644 & 25-04 12:45 -- 25-04 13:15 & 27-04 12:45 -- 27-04 13:15 & Przesunięcie (+48.0h) \\ 
+14606 & 25-04 13:15 -- 25-04 14:15 & 27-04 13:15 -- 27-04 14:15 & Przesunięcie (+48.0h) \\ 
+\hline
+\textbf{16395*} & - & 05-04 08:00 -- 05-04 09:00 & \textbf{Nowe (wstrzyknięte)} \\ 
+\hline
+\end{tabular}
+\\ {\footnotesize * -- Zadanie zakłócające (disruptor). Pogrubiony tekst: zadanie fizycznie wykonane.}
+\end{table}
+
+\vspace{0.8cm}

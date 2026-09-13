@@ -465,9 +465,9 @@ class NSGAPlanner:
             + 1.0 * mean_overtime
         )
 
-    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], group_id: int,
+    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task],
                                 disruptors_map: Optional[DisruptorsMap] = None,
-                                phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
+                                start_date=datetime(2027, 1, 4)):
         disr_map = copy.deepcopy(disruptors_map)
         # self.repository = Repository(user, phase, phase_order, start_date)
 
@@ -498,7 +498,6 @@ class NSGAPlanner:
             current_plan, gen_time = self._generate_plan(remaining_to_plan, previous_plan_state, sim_day, sim_time,
                                                          time_since_last_break, total_break_time_today, last_task_type,
                                                          work_start_hour, work_end_hour, 20, start_date)
-
             # save plan to db
             session.record_plan(
                 planned_tasks=current_plan,
@@ -507,12 +506,8 @@ class NSGAPlanner:
                 disruption_time=disruption_occurrence_time
             )
             disruption_occurrence_time = None
-            # plan_record = self.repository.create_plan_records(
-            #     algorithm="nsga", planned_tasks=current_plan, group_id=group_id,
-            #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
-            # )
 
-            print(f"\n\nNSGA ------ Simulating ------")
+
             replan_needed = False
 
             # go through all planned tasks until they are possible to be completed
@@ -523,7 +518,6 @@ class NSGAPlanner:
                 # execute plan item
                 if plan_item.get("is_break"):
                     simulator.process_break(duration=plan_item["duration"], time=sim_time)
-                    # self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
                     break_obj = BreakTask(duration_hours=plan_item["duration"])
@@ -543,10 +537,7 @@ class NSGAPlanner:
                     actual_dur, end_time, energy = simulator.execute_task(task, sim_time, last_task_type)
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
-                    # self.repository.save_execution_to_db(
-                    #     plan_record, task, current_sim_dt,
-                    #     current_sim_dt + timedelta(hours=actual_dur), energy
-                    # )
+
                     session.record_execution(
                         task=task,
                         planned_start=plan_item["start_time"],
@@ -566,7 +557,6 @@ class NSGAPlanner:
                     while pending_disruptors and pending_disruptors[0][0] <= sim_time:
                         disrupt_time, disruptor_task = pending_disruptors.pop(0)
                         disruptors_appeared.append((disrupt_time, disruptor_task))
-
                     if disruptors_appeared:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
@@ -578,7 +568,6 @@ class NSGAPlanner:
                                                                             minutes=dm)
                         previous_plan_state = copy.deepcopy(current_plan)
                         replan_needed = True
-                        print(f"NSGA ------ Disruptor occurred: RE-PLANNING ------")
                         break
                     else:
                         disruption_occurrence_time = None
@@ -599,15 +588,12 @@ class NSGAPlanner:
                         remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         previous_plan_state = copy.deepcopy(current_plan)
                         replan_needed = True
-                        print(f"NSGA ------ Have time left: RE-PLANNING ------")
                         break
 
                 # end of day
                 if sim_time >= work_end_hour:
                     sim_day += 1
                     if sim_day >= 20:
-                        if current_plan:
-                            print(f"NSGA ------ End of month with tasks left ------")
                         remaining_to_plan = []
                         break
                     simulator.reset(sim_time, work_end_hour, weekly=(sim_day % 5 == 0))
@@ -624,18 +610,14 @@ class NSGAPlanner:
                             remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                             previous_plan_state = copy.deepcopy(current_plan)
                             replan_needed = True
-                            print(f"NSGA ------ Tasks left from day: RE-PLANNING ------")
                             break
 
             # if we moved through tasks without re-planning we finish month
             if not replan_needed:
                 if not remaining_to_plan:
-                    print(f"NSGA ------ All tasks completed on day {sim_day}! Finishing month early. ------")
-                    print(f"NSGA ------ Simulation END ------ \n\n")
                     break
                 else:
                     remaining_to_plan = []
-                    print(f"NSGA ------ Simulation END ------\n\n")
             else:
                 current_generation += 1
 

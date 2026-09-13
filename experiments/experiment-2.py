@@ -31,7 +31,7 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[:])).all()
 
         tasks_records = (
             session.query(Task)
@@ -62,7 +62,6 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
 
 def run_experiment():
-    group_id = 252001
     users, tasks, disruptors_tasks = prepare_data_for_disruptions_phase('disruptions')
     for algorithm in ['ppo', 'nsga', 'baseline']:
         print(f"\n\n------------------------------------------------------------------------------------------------")
@@ -79,17 +78,15 @@ def run_experiment():
             else:
                 raise ValueError(f"Unavailable algorithm: '{algorithm}'")
 
-            start_date = datetime(year=2028, month=9, day=11)
+            start_date = datetime(year=2028, month=3, day=27)
             for phase_order, month_tasks in tasks.items():
-                sim_session = MonthSimulationSession(user, algorithm, 'disruptions', phase_order, group_id)
+                sim_session = MonthSimulationSession(user, algorithm, 'disruptions', phase_order)
                 disruptors_map = build_disruptors_map(disruptors_tasks[phase_order], start_date)
                 res = planner.plan_and_simulate_month(session=sim_session, user=user, month_tasks=month_tasks,
-                                                      group_id=group_id, phase="disruptions", phase_order=phase_order,
                                                       start_date=start_date, disruptors_map=disruptors_map)
 
                 sim_session.compute_and_save_to_db(SessionLocal, res["total_replans"], res["days_used"])
                 start_date = start_date + timedelta(days=28)
-                group_id += 1
             print(f"-------------------------------------- USER {user.id} :END {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} --------------------------------------")
 
 

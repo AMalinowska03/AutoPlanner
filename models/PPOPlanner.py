@@ -84,9 +84,8 @@ class PPOPlanner:
         loaded_model = torch.load(f"./PPOGenerated/finetune_u{user.id}/pyt_save/model.pt", map_location=device, weights_only=False)
         self._save_to_storage(f"ppo_user_{user.id}_finetuned", loaded_model)
 
-    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], group_id: int,
-                                disruptors_map: Optional[DisruptorsMap] = None, phase='online',
-                                phase_order=0, start_date=datetime(2027, 1, 4)):
+    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task],
+                                disruptors_map: Optional[DisruptorsMap] = None, start_date=datetime(2027, 1, 4)):
         """
         Simulates 1 month of work saving plan, it's re-plans and execution to db
         Manages disruptor injections with re-planning.
@@ -156,12 +155,7 @@ class PPOPlanner:
                 disruption_time=disruption_occurrence_time
             )
             disruption_occurrence_time = None
-            # plan_record = self.repository.create_plan_records(
-            #     algorithm="ppo", planned_tasks=current_plan, group_id=group_id,
-            #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
-            # )
 
-            print(f"\n\nPPO ------ Simulating ------")
             replan_needed = False
 
             # go through all planned tasks until they are possible to be completed
@@ -172,7 +166,6 @@ class PPOPlanner:
                 # execute plan item
                 if plan_item.get("is_break"):
                     simulator.process_break(duration=plan_item["duration"], time=sim_time)
-                    # self.repository.save_break(plan_item["duration"], plan_record, sim_time, plan_item["start_time"])
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
                     break_obj = BreakTask(duration_hours=plan_item["duration"])
@@ -192,10 +185,7 @@ class PPOPlanner:
                     actual_dur, end_time, energy = simulator.execute_task(task, sim_time, raw_env.last_task_type)
                     current_sim_dt = start_date + timedelta(days=calendar_days_passed, hours=int(sim_time),
                                                             minutes=int((sim_time % 1) * 60))
-                    # self.repository.save_execution_to_db(
-                    #     plan_record, task, current_sim_dt,
-                    #     current_sim_dt + timedelta(hours=actual_dur), energy
-                    # )
+
                     session.record_execution(
                         task=task,
                         planned_start=plan_item["start_time"],
@@ -215,7 +205,6 @@ class PPOPlanner:
                     while pending_disruptors and pending_disruptors[0][0] <= sim_time:
                         disrupt_time, disruptor_task = pending_disruptors.pop(0)
                         disruptors_appeared.append((disrupt_time, disruptor_task))
-
                     if disruptors_appeared:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
@@ -227,7 +216,6 @@ class PPOPlanner:
                                                                             minutes=dm)
                         previous_plan_state = copy.deepcopy(current_plan)
                         replan_needed = True
-                        print(f"PPO ------ Disruptor occurred: RE-PLANNING ------")
                         training_scenarios.append({
                             "day": sim_day,
                             "time": sim_time,
@@ -260,7 +248,6 @@ class PPOPlanner:
                         remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         previous_plan_state = copy.deepcopy(raw_env.current_plan)
                         replan_needed = True
-                        print(f"PPO ------ Have time left: RE-PLANNING ------")
                         training_scenarios.append({
                             "day": sim_day,
                             "time": sim_time,
@@ -295,7 +282,6 @@ class PPOPlanner:
                                 "energy_debt": simulator.energy_debt,
                                 "start_energy": simulator.start_energy,
                             })
-                            print(f"PPO ------ End of month with tasks left ------")
                         remaining_to_plan = []
                         break
                     sim_time = raw_env.work_start_hour
@@ -311,7 +297,6 @@ class PPOPlanner:
                             remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                             previous_plan_state = copy.deepcopy(raw_env.current_plan)
                             replan_needed = True
-                            print(f"PPO ------ Tasks left from day: RE-PLANNING ------")
                             training_scenarios.append({
                                 "day": sim_day,
                                 "time": sim_time,
@@ -325,16 +310,12 @@ class PPOPlanner:
                                 "start_energy": simulator.start_energy,
                             })
                             break
-
             # if we moved through tasks without re-planning we finish month
             if not replan_needed:
                 if not remaining_to_plan:
-                    print(f"PPO ------ All tasks completed on day {sim_day}! Finishing month early. ------")
-                    print(f"PPO ------ Simulation END ------ \n\n")
                     break
                 else:
                     remaining_to_plan = []
-                    print(f"PPO ------ Simulation END ------\n\n")
             else:
                 current_generation += 1
 

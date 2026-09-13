@@ -18,8 +18,8 @@ class BaselinePlanner:
         self.work_start_hour, self.work_end_hour = get_user_work_hours(user)
         self.repository = None
 
-    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], group_id: int, disruptors_map: Optional[DisruptorsMap] = None,
-                                phase='online', phase_order=0, start_date=datetime(2027, 1, 4)):
+    def plan_and_simulate_month(self, session: MonthSimulationSession, user: User, month_tasks: List[Task], disruptors_map: Optional[DisruptorsMap] = None,
+                                start_date=datetime(2027, 1, 4)):
         disr_map = copy.deepcopy(disruptors_map)
         # self.repository = Repository(self.user, phase, phase_order, start_date)
 
@@ -40,7 +40,6 @@ class BaselinePlanner:
                                                          self.work_start_hour, self.work_end_hour,
                                                          start_date
                                                          )
-
             # save plan to db
             session.record_plan(
                 planned_tasks=current_plan,
@@ -54,9 +53,8 @@ class BaselinePlanner:
             #     generation=current_generation, disruption_time=disruption_occurrence_time, generating_time=gen_time
             # )
 
-            print(f"Base ------ Simulating ------")
             replan_needed = False
-
+            previous_plan_state = None
             # go through all planned tasks until they are possible to be completed
             while current_plan:
                 plan_item = current_plan.pop(0)
@@ -110,10 +108,9 @@ class BaselinePlanner:
                     while pending_disruptors and pending_disruptors[0][0] <= sim_time:
                         disrupt_time, disruptor_task = pending_disruptors.pop(0)
                         disruptors_appeared.append((disrupt_time, disruptor_task))
-
                     if disruptors_appeared:
-                        remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
-                        remaining_to_plan.extend(disruptor_task for _, disruptor_task in disruptors_appeared)
+                        remaining_to_plan = [disruptor_task for _, disruptor_task in disruptors_appeared]
+                        remaining_to_plan.extend(item["task"] for item in current_plan if "task" in item)
                         remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         first_disruption_time = min(disrupt_time for disrupt_time, _ in disruptors_appeared)
                         dh = int(first_disruption_time)
@@ -123,7 +120,6 @@ class BaselinePlanner:
                         previous_plan_state = copy.deepcopy(current_plan)
                         # set to history to check instability
                         replan_needed = True
-                        print(f"Base ------ Disruptor occurred: RE-PLANNING ------")
                         break
                     else:
                         disruption_occurrence_time = None
@@ -143,15 +139,12 @@ class BaselinePlanner:
                         remaining_to_plan = [item["task"] for item in current_plan if "task" in item]
                         remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                         replan_needed = True
-                        print(f"Base ------ Have time left: RE-PLANNING ------")
                         break
 
                 # end of day
                 if sim_time >= self.work_end_hour:
                     sim_day += 1
                     if sim_day >= 20:
-                        if current_plan:
-                            print(f"Base ------ End of month with tasks left ------")
                         remaining_to_plan = []
                         break
                     simulator.reset(sim_time, self.work_end_hour, weekly=(sim_day % 5 == 0))
@@ -168,18 +161,13 @@ class BaselinePlanner:
                             remaining_to_plan = sort_tasks_by_deadline_and_priority(remaining_to_plan)
                             previous_plan_state = copy.deepcopy(current_plan)
                             replan_needed = True
-                            print(f"Base ------ Tasks left from day: RE-PLANNING ------")
                             break
-
             # if we moved through tasks without re-planning we finish month
             if not replan_needed:
                 if not remaining_to_plan:
-                    print(f"Baseline ------ All tasks completed on day {sim_day}! Finishing month early. ------")
-                    print(f"Baseline ------ Simulation END ------ \n\n")
                     break
                 else:
                     remaining_to_plan = []
-                    print(f"Baseline ------ Simulation END ------\n\n")
             else:
                 current_generation += 1
 
