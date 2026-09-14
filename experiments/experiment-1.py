@@ -32,7 +32,7 @@ def prepare_data_for_online_phase(phase: str) -> tuple[list[User], dict[int, lis
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
 
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[:1])).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
 
         tasks_records = (
             session.query(Task)
@@ -71,9 +71,8 @@ def run_experiment():
             start_date = datetime(year=2027, month=1, day=4)
             for phase_order, month_tasks in tasks.items():  # iterate through all months of tasks
                 print(f"Month {phase_order} | tasks {len(month_tasks)}")
-                sim_session = MonthSimulationSession(user, algorithm, 'online', phase_order, group_id)
+                sim_session = MonthSimulationSession(user, algorithm, 'online', phase_order)
                 res = planner.plan_and_simulate_month(session=sim_session,  user=user, month_tasks=month_tasks,
-                                                      group_id=group_id, phase="online", phase_order=phase_order,
                                                       start_date=start_date)
 
                 sim_session.compute_and_save_to_db(SessionLocal, res["total_replans"], res["days_used"])

@@ -3,7 +3,6 @@ import copy
 import io
 import shelve
 from datetime import datetime, timedelta
-from collections import defaultdict
 import torch
 
 from data.database import SessionLocal

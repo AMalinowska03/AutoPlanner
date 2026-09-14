@@ -13,7 +13,7 @@ from evaluation.metrics import metrics
 
 
 class MonthSimulationSession:
-    def __init__(self, user, algorithm: str, phase: str, phase_order: int, group_id: int):
+    def __init__(self, user, algorithm: str, phase: str, phase_order: int):
         self.user = user
         self.algorithm = algorithm
         self.phase = phase

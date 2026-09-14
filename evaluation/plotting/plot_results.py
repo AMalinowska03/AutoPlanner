@@ -462,9 +462,9 @@ if __name__ == "__main__":
     print(f"Chosen user sample: {sample_users}")
 
     # Process phase: 'online' (Experiment 1)
-    # generate_phase_plots(data, sample_users, phase_name="online", base_output_dir="../results")
-    # export_all_tables_to_latex(data, phase_name="online", base_output_dir="../results")
-    # extract_derived_metrics_summary(data, phase_name="online", base_output_dir="../results")
+    generate_phase_plots(data, sample_users, phase_name="online", base_output_dir="../results")
+    export_all_tables_to_latex(data, phase_name="online", base_output_dir="../results")
+    extract_derived_metrics_summary(data, phase_name="online", base_output_dir="../results")
 
     # Process phase: 'disruptions' (Experiment 2)
     generate_phase_plots(data, sample_users, phase_name="disruptions", base_output_dir="../results")

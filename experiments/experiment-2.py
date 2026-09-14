@@ -31,7 +31,7 @@ def prepare_data_for_disruptions_phase(phase: str) -> tuple[Any, dict[int, list]
 
     with SessionLocal() as session:
         user_ids = load_finished_user_ids()
-        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids[:])).all()
+        users = session.query(User).filter_by(is_training=False).filter(User.id.in_(user_ids)).all()
 
         tasks_records = (
             session.query(Task)
